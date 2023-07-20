@@ -29,6 +29,7 @@ void *connection_handle(void *client_sockfd)
     char *client_name;
     int read_len = 0;
     char msg[BUFFER_SIZE];
+    char temp[BUFFER_SIZE];
 
     // get client name
     recv(socket, buffer, BUFFER_SIZE, 0);
@@ -48,6 +49,7 @@ void *connection_handle(void *client_sockfd)
 
     do
     {
+        memset(buffer, 0, BUFFER_SIZE);
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
         // end of string marker
         buffer[read_len] = '\0';
@@ -55,35 +57,25 @@ void *connection_handle(void *client_sockfd)
 
         if (read_len > 0)
         {
+            memset(temp, 0, BUFFER_SIZE);
             // add client name to buffer
-            char temp[BUFFER_SIZE];
             pthread_mutex_lock(&lock);
             counter += 1;
             pthread_mutex_unlock(&lock);
-            sprintf(temp, "%d. ", counter);
+            // sprintf(temp, "%d. ", counter);
             strcat(temp, client_name);
             strcat(temp, ": ");
 
             // handle buffer
-            if (strncmp(buffer, "TXT", strlen("TXT")) == 0)
+            if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
-                printf("buffer: %s\n", buffer);
-                char *token = strtok(buffer, "|");
-                token = strtok(NULL,"|");
-                // sscanf(buffer, "%*s|%s", msg);
-                // printf("msg: %s\n", msg);
-                printf("token: %s\n", token);
-                strcat(temp, token);
-                strcpy(buffer, temp);
-                printf("%s\n", buffer);
-                for (int i = 0; i < MAX_CLIENTS; i++)
-                {
-                    if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
-                    {
-                        send(clients[i].sockfd, buffer, strlen(buffer), 0);
-                    }
-                }
+                sscanf(buffer, "%*[^|]|%s", )
+            } 
+            else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
+            {
+                
             }
+
         }
         else
         {

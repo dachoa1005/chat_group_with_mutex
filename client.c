@@ -5,8 +5,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define SERVER_IP "127.0.0.1"
+#define BUFFER_SIZE 1024
 
 void send_msg_to_serv(int socket, char *client_input);
 void send_file(int socket, char *file_path);
@@ -43,13 +47,13 @@ void *send_message(void *client_sockfd)
         if (strcmp(client_input, "")== 0)
             continue;
 
-        if (strncmp(client_input, "/upload ", strlen("/upload ")) == 0)
+        if (strncmp(client_input, "/upload ", strlen("/upload ")) == 0 || strcmp("/upload", client_input) == 0)
         {
             sscanf(client_input, "%*s %s", file_path);
             printf("file_path: %s\n", file_path);
             if (strcmp(file_path, "") == 0)
             {
-                printf("Usage: /upload <file-path>");
+                printf("Usage: /upload <file-path>\n");
                 continue;
             } else 
             {
@@ -97,6 +101,37 @@ void *recv_message(void *client_sockfd)
 
 void send_file(int socket, char *file_path)
 {
+    int bytes_read; 
+    char buffer[BUFFER_SIZE];
+    
+    int fd = open(file_path, O_RDONLY);
+    if (fd < 0)
+    {
+        perror("open fail");
+        return;
+    }
+
+    struct stat st;
+    stat(file_path, &st);
+    int file_size = st.st_size;
+    printf("file size: %d\n", file_size);
+    
+    memset(buffer, 0, BUFFER_SIZE);
+    sprintf(buffer, "FILE|%d|", file_size);
+    //send file_size
+    send(socket, buffer, strlen(buffer), 0);
+    printf("buffer sent: %s\n", buffer);
+    memset(buffer, 0, BUFFER_SIZE);
+    int bytes_sent = 0;
+
+    while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0)
+    {
+        printf("bytes read: %d\n", bytes_read);
+        printf("buffer : %s\n",buffer);
+        bytes_sent += send(socket, buffer, strlen(buffer), 0);
+    }
+    printf("bytes sent: %d\n", bytes_sent);
+    close(fd);
     return;
 }
 

@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
         printf("Enter client_input: ");
         fgets(client_input, 1024, stdin);
         client_input[strlen(client_input)-1]='\0';
-        sscanf(client_input, "%s|%s", temp, temp2);
+        sscanf(client_input, "%*[^|]|%s", temp);
         printf("temp: %s\n",temp);
         printf_screen(client_input);
     }
