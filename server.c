@@ -30,6 +30,8 @@ void *connection_handle(void *client_sockfd)
     int read_len = 0;
     char msg[BUFFER_SIZE];
     char temp[BUFFER_SIZE];
+    char print_msg[BUFFER_SIZE];
+    int file_size;
 
     // get client name
     recv(socket, buffer, BUFFER_SIZE, 0);
@@ -53,27 +55,58 @@ void *connection_handle(void *client_sockfd)
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
         // end of string marker
         buffer[read_len] = '\0';
-        // printf("buffer: %s\n", buffer);
+        printf("buffer: %s\n", buffer);
 
         if (read_len > 0)
         {
+            memset(print_msg, 0, BUFFER_SIZE);
             memset(temp, 0, BUFFER_SIZE);
-            // add client name to buffer
             pthread_mutex_lock(&lock);
             counter += 1;
             pthread_mutex_unlock(&lock);
             // sprintf(temp, "%d. ", counter);
-            strcat(temp, client_name);
-            strcat(temp, ": ");
+            // add client name to buffer
+            strcat(print_msg, client_name);
+            strcat(print_msg, ": ");
 
-            // handle buffer
+            // handle buffer after recv at line 54,
+            // buffer format: TXT|msg or FILE|file_size
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
-                sscanf(buffer, "%*[^|]|%s", )
+                sscanf(buffer, "%*[^|]|%[^\\0]", temp); //get msg
+                strcat(print_msg, temp);
+                printf("%d. %s\n\n", counter, print_msg);
+                // send to all
             } 
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
             {
-                
+                sscanf(buffer, "%*[^|]|%d|", &file_size); //get file_size
+                printf("%d. file_size: %d\n",counter, file_size);
+                // printf("buffer size: %d\n", read_len);
+                // do {
+                //     memset(buffer, 0, BUFFER_SIZE);
+                //     int bytes_recv = recv(socket, buffer, BUFFER_SIZE, 0);
+                //     printf("bytes recv: %d\n",bytes_recv);
+                //     total_bytes_recv += bytes_recv;
+                //     printf("%s\n",buffer);
+                // } while (total_bytes_recv < file_size);
+                int total_bytes_recv =0;
+                int bytes_recv = 0;
+                while (total_bytes_recv < file_size)
+                {
+                    memset(buffer, 0, BUFFER_SIZE);
+                    bytes_recv = recv(socket, buffer, BUFFER_SIZE,0);
+                    if (bytes_recv == -1)
+                    {
+                        printf("Error receiving file\n");
+                        continue;
+                    }
+                    total_bytes_recv += bytes_recv;
+                    printf("%s",buffer);
+                }
+                printf("\ntotal bytes recv: %d\n", total_bytes_recv);
+                printf("\n\n");
+                continue;
             }
 
         }

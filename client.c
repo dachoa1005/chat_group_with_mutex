@@ -24,25 +24,25 @@ void *send_message(void *client_sockfd)
     while (1)
     {
         printf("Enter your name: ");
-        fgets(client_name, 1024, stdin);
+        fgets(client_name, BUFFER_SIZE, stdin);
         client_name[strlen(client_name) - 1] = '\0';
         if (strcmp(client_name, "") != 0)
             break;
     }
-    if (send(socket, client_name, strlen(client_name), 0) < 0)
+    if (send(socket, client_name, sizeof(client_name), 0) < 0)
     {
         perror("send");
         exit(1);
     }
 
-    char client_input[1024];
-    char file_path[1024];
+    char client_input[BUFFER_SIZE];
+    char file_path[BUFFER_SIZE];
     while (1)
     {
-        memset(client_input, 0, 1024);
+        memset(client_input, 0, BUFFER_SIZE);
         // memset(file_path, 0, sizeof(file_path));
         
-        fgets(client_input, 1024, stdin);
+        fgets(client_input, BUFFER_SIZE, stdin);
         client_input[strlen(client_input) - 1] = '\0';
         if (strcmp(client_input, "")== 0)
             continue;
@@ -71,11 +71,11 @@ void *send_message(void *client_sockfd)
 void *recv_message(void *client_sockfd)
 {
     int socket = *(int *)client_sockfd;
-    char message[1024];
-    char msg[1024];
+    char message[BUFFER_SIZE];
+    char msg[BUFFER_SIZE];
     while (1)
     {
-        int recv_len = recv(socket, message, 1024, 0);
+        int recv_len = recv(socket, message, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
             perror("recv");
@@ -119,28 +119,48 @@ void send_file(int socket, char *file_path)
     memset(buffer, 0, BUFFER_SIZE);
     sprintf(buffer, "FILE|%d|", file_size);
     //send file_size
-    send(socket, buffer, strlen(buffer), 0);
+    send(socket, buffer, sizeof(buffer), 0);
     printf("buffer sent: %s\n", buffer);
     memset(buffer, 0, BUFFER_SIZE);
-    int bytes_sent = 0;
 
-    while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0)
+    // while (read(fd, buffer, BUFFER_SIZE))
+    // {
+    //     bytes_sent += send(socket, buffer, strlen(buffer), 0);
+    //     printf("file buffer sent: %s\n",buffer);
+    //     memset(buffer, 0, BUFFER_SIZE);
+    // }
+    // printf("bytes sent: %d\n", bytes_sent);
+    // close(fd);
+    // return;
+
+    int bytes_sent = 0;
+    int total_bytes_sent = 0;
+    while (total_bytes_sent < file_size)
     {
-        printf("bytes read: %d\n", bytes_read);
-        printf("buffer : %s\n",buffer);
-        bytes_sent += send(socket, buffer, strlen(buffer), 0);
+        memset(buffer, 0, sizeof(buffer));
+
+        if (file_size - total_bytes_sent < BUFFER_SIZE)
+        {
+            read(fd, buffer, file_size - total_bytes_sent);
+            bytes_sent = send(socket, buffer, sizeof(buffer), 0);
+            total_bytes_sent += bytes_sent;
+        }
+        else 
+        {
+            read(fd, buffer, BUFFER_SIZE);
+            bytes_sent = send(socket, buffer, sizeof(buffer), 0);
+            total_bytes_sent += bytes_sent;
+        }
     }
-    printf("bytes sent: %d\n", bytes_sent);
     close(fd);
-    return;
 }
 
 void send_msg_to_serv(int socket, char *client_input)
 {
     // char *msg = malloc(sizeof("TXT|")+ sizeof(client_input));
-    char msg[1024];
+    char msg[BUFFER_SIZE];
     sprintf(msg, "%s%s", "TXT|", client_input);
-    if (send(socket, msg, strlen(msg), 0) < 0)
+    if (send(socket, msg, sizeof(msg), 0) < 0)
     {
         perror("send");
         exit(1);
