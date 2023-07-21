@@ -62,7 +62,7 @@ void *send_message(void *client_sockfd)
             memset(file_path, 0, sizeof(file_path));
         } else // client_input = message
         {
-            printf("client_input: %s\n", client_input);
+            // printf("client_input: %s\n", client_input);
             send_msg_to_serv(socket, client_input); 
         }
     }
