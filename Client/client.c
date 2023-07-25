@@ -14,6 +14,8 @@
 
 void send_msg_to_serv(int socket, char *client_input);
 void send_file(int socket, char *file_path);
+void down_file(int socket, char *file_name);
+
 
 void *send_message(void *client_sockfd)
 {
@@ -37,6 +39,8 @@ void *send_message(void *client_sockfd)
 
     char client_input[BUFFER_SIZE];
     char file_path[BUFFER_SIZE];
+    char file_name[BUFFER_SIZE];
+
     while (1)
     {
         memset(client_input, 0, BUFFER_SIZE);
@@ -55,15 +59,27 @@ void *send_message(void *client_sockfd)
             {
                 printf("Usage: /upload <file-path>\n");
                 continue;
-            } else 
-            {
-                send_file(socket, file_path); //check if fopen ==NULL
-            }
+            } 
+            send_file(socket, file_path); //check if fopen ==NULL
             memset(file_path, 0, sizeof(file_path));
-        } else // client_input = message
+        } else if (strncmp(client_input, "/download ", strlen("/download ")) == 0 || strcmp("/download", client_input) == 0)
+        {
+            sscanf(client_input, "%*s %s", file_name);
+            printf("file_name: %s\n", file_name);
+            if (strcmp(file_name, "") == 0)
+            {
+                printf("Usage: /upload <file-name>\n");
+                continue;
+            }
+            down_file(socket, file_name); 
+            memset(file_name, 0, sizeof(file_name));
+
+        } else
+        // client_input = message
         {
             // printf("client_input: %s\n", client_input);
             send_msg_to_serv(socket, client_input); 
+            continue;
         }
     }
 }
@@ -99,6 +115,15 @@ void *recv_message(void *client_sockfd)
     }
 }
 
+const char* get_file_name(const char* path) {
+    // Find the last occurrence of the path separator '/'
+    const char* last_slash = strrchr(path, '/');
+
+    // If the last_slash is not NULL, the file name starts after the slash,
+    // otherwise, the entire path is the file name.
+    return last_slash ? last_slash + 1 : path;
+}
+
 void send_file(int socket, char *file_path)
 {
     int bytes_read; 
@@ -111,13 +136,15 @@ void send_file(int socket, char *file_path)
         return;
     }
 
+    const char* file_name = get_file_name(file_path);
+
     struct stat st;
     stat(file_path, &st);
     int file_size = st.st_size;
     printf("file size: %d\n", file_size);
     
     memset(buffer, 0, BUFFER_SIZE);
-    sprintf(buffer, "FILE|%d|", file_size);
+    sprintf(buffer, "FILE|%d|%s", file_size, file_name);
     //send file_size
     send(socket, buffer, sizeof(buffer), 0);
     printf("buffer sent: %s\n", buffer);
@@ -137,22 +164,32 @@ void send_file(int socket, char *file_path)
     int total_bytes_sent = 0;
     while (total_bytes_sent < file_size)
     {
-        memset(buffer, 0, sizeof(buffer));
+        // Read the file in chunks
+        int bytes_read = read(fd, buffer, BUFFER_SIZE);
+        if (bytes_read < 0)
+        {
+            perror("read");
+            close(fd);
+            return;
+        }
 
-        if (file_size - total_bytes_sent < BUFFER_SIZE)
+        // Send the chunk to the server
+        bytes_sent = send(socket, buffer, bytes_read, 0);
+        if (bytes_sent < 0)
         {
-            read(fd, buffer, file_size - total_bytes_sent);
-            bytes_sent = send(socket, buffer, sizeof(buffer), 0);
-            total_bytes_sent += bytes_sent;
+            perror("send");
+            close(fd);
+            return;
         }
-        else 
-        {
-            read(fd, buffer, BUFFER_SIZE);
-            bytes_sent = send(socket, buffer, sizeof(buffer), 0);
-            total_bytes_sent += bytes_sent;
-        }
+
+        total_bytes_sent += bytes_sent;
     }
     close(fd);
+}
+
+void down_file(int socket, char *file_name)
+{
+    return;
 }
 
 void send_msg_to_serv(int socket, char *client_input)

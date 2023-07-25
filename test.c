@@ -1,37 +1,45 @@
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <pthread.h>
 
-void printf_screen(char *client_input)
+int main()
 {
-    char *msg = malloc(sizeof("TXT|")+ sizeof(client_input));
-    sprintf(msg, "%s%s", "TXT|", client_input);
-    printf("%s\n", msg);
-}
-
-int main(int argc, char const *argv[])
-{
+    const char *file_name = "example.txt";
+    int file_descriptor;
     char client_input[1024];
-    char file_path[1024];
-    char temp[1024];
-    char temp2[1024];
 
+    // Open the file for writing, create it if it doesn't exist, and set the permissions to rw-rw-rw-
+    file_descriptor = open(file_name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+    if (file_descriptor == -1)
+    {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Now, you can write to the file using the file descriptor.
+    // For example, let's write a simple message to the file:
+    const char *message = "Hello, this is a test message.\n";
 
     while (1)
     {
-        memset(client_input, 0, 1024);
-        memset(temp, 0, sizeof(temp));
-        // memset(file_path, 0, sizeof(file_path));
-        printf("Enter client_input: ");
         fgets(client_input, 1024, stdin);
-        client_input[strlen(client_input)-1]='\0';
-        sscanf(client_input, "%*[^|]|%s", temp);
-        printf("temp: %s\n",temp);
-        printf_screen(client_input);
+        // client_input[strlen(client_input) - 1] = '\0';
+        ssize_t bytes_written = write(file_descriptor, client_input, strlen(client_input));
+
+        if (bytes_written == -1)
+        {
+            perror("Error writing to file");
+            close(file_descriptor);
+            return 1;
+        }
     }
+
+    // Close the file when done writing.
+    close(file_descriptor);
+
     return 0;
 }
