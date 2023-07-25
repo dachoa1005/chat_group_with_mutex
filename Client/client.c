@@ -12,6 +12,8 @@
 #define SERVER_IP "127.0.0.1"
 #define BUFFER_SIZE 1024
 
+void *send_message(void *client_sockfd);
+void *recv_message(void *client_sockfd);
 void send_msg_to_serv(int socket, char *client_input);
 void send_file(int socket, char *file_path);
 void down_file(int socket, char *file_name);
@@ -39,7 +41,7 @@ void *send_message(void *client_sockfd)
 
     char client_input[BUFFER_SIZE];
     char file_path[BUFFER_SIZE];
-    char file_name[BUFFER_SIZE];
+    char file_name[800];
 
     while (1)
     {
@@ -62,18 +64,23 @@ void *send_message(void *client_sockfd)
             } 
             send_file(socket, file_path); //check if fopen ==NULL
             memset(file_path, 0, sizeof(file_path));
+            continue;
         } else if (strncmp(client_input, "/download ", strlen("/download ")) == 0 || strcmp("/download", client_input) == 0)
         {
             sscanf(client_input, "%*s %s", file_name);
             printf("file_name: %s\n", file_name);
             if (strcmp(file_name, "") == 0)
             {
-                printf("Usage: /upload <file-name>\n");
+                printf("Usage: /download <file-name>\n");
                 continue;
             }
-            down_file(socket, file_name); 
+            
+            char buffer[BUFFER_SIZE];
+            memset(buffer, 0, BUFFER_SIZE);
+            sprintf(buffer, "DOWN|%s", file_name);
+            send(socket, buffer, sizeof(buffer), 0);
             memset(file_name, 0, sizeof(file_name));
-
+            continue;
         } else
         // client_input = message
         {
@@ -87,11 +94,15 @@ void *send_message(void *client_sockfd)
 void *recv_message(void *client_sockfd)
 {
     int socket = *(int *)client_sockfd;
-    char message[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
     char msg[BUFFER_SIZE];
+    int file_size = 0;
+    char file_name[800];
+    char file_path[BUFFER_SIZE];
+
     while (1)
     {
-        int recv_len = recv(socket, message, BUFFER_SIZE, 0);
+        int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
             perror("recv");
@@ -102,15 +113,62 @@ void *recv_message(void *client_sockfd)
             printf("Server disconnected\n");
             exit(1);
         }
-        message[recv_len] = '\0';
+        buffer[recv_len] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
-        printf("%s\n", message);
-        if (strncmp(message, "TXT|", strlen("TXT|")) == 0) //this is a Text
+        printf("%s\n", buffer);
+        if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) //this is a Text
         {
-            sscanf(message, "%*s|%s", msg);
+            sscanf(buffer, "%*s|%s", msg);
             printf("%s\n", msg);
             continue;
+        } 
+        else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
+        {
+            sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
+            printf("file size: %d, file name: %s\n", file_size, file_name);
+            if (file_size == 0) //file not exist
+            {
+                printf("File not exist\n");
+                continue;
+            } else if (file_size > 0)
+            {
+                sprintf(file_path, "./Client/%s", file_name);
+                printf("file path: %s\n", file_path);
+
+                int file_descriptor = open(file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+                if (file_descriptor == -1)
+                {
+                    perror("Error opening file");
+                    continue;
+                }
+                int total_bytes_recv = 0;
+                int bytes_recv = 0;
+                while (total_bytes_recv < file_size)
+                {
+                    memset(buffer, 0, BUFFER_SIZE);
+                    bytes_recv = recv(socket, buffer, BUFFER_SIZE, 0);
+                    if (bytes_recv == -1)
+                    {
+                        printf("Error receiving file\n");
+                        continue;
+                    }
+                    ssize_t bytes_written = write(file_descriptor, buffer, bytes_recv);
+
+                    if (bytes_written == -1)
+                    {
+                        perror("Error writing to file");
+                        close(file_descriptor);
+                        continue;
+                    }
+                    total_bytes_recv += bytes_recv;
+                    // printf("%s", buffer);
+                }
+                close(file_descriptor);
+                memset(file_name, 0, sizeof(file_name));
+                memset(file_path, 0, sizeof(file_path));
+                continue;
+            }
         }
     }
 }
@@ -189,6 +247,7 @@ void send_file(int socket, char *file_path)
 
 void down_file(int socket, char *file_name)
 {
+    // 2 truong hop: 1. file ton tai: message format: FILE|file_size|file_name; 2. khong ton tai: FILE|0|file_name
     return;
 }
 

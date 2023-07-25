@@ -50,6 +50,7 @@ void *connection_handle(void *arg)
     char file_name[800];
     char file_path[BUFFER_SIZE];
     int file_size;
+    int file_descriptor;
 
     // Get client name
     read_len = recv(socket, buffer, BUFFER_SIZE, 0);
@@ -125,7 +126,6 @@ void *connection_handle(void *arg)
                 printf("%d. file_name:%s, file_size: %d\n", counter, file_name, file_size);
                 int total_bytes_recv = 0;
                 int bytes_recv = 0;
-                int file_descriptor;
                 sprintf(file_path, "./Server/%s", file_name);
                 printf("file path: %s\n", file_path);
 
@@ -158,7 +158,65 @@ void *connection_handle(void *arg)
                 }
                 // printf("\ntotal bytes recv: %d\n", total_bytes_recv);
                 close(file_descriptor);
+                memset(file_name, 0, sizeof(file_name));
+                memset(file_path, 0, sizeof(file_path));
                 // printf("\n\n");
+                continue;
+            }
+            else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0) // send file from server to client
+            {
+                // msg format: DOWN|file_name
+                sscanf(buffer, "%*[^|]|%s|", file_name);
+                printf("file_name: %s\n", file_name);
+                sprintf(file_path, "./Server/%s", file_name);
+                printf("file path: %s\n", file_path);
+                file_descriptor = open(file_path, O_RDONLY);
+                if (file_descriptor == -1)
+                {
+                    perror("Error opening file");
+                    // send fail message to client with format: FILE|0|file_name
+                    memset(buffer, 0, BUFFER_SIZE);
+                    sprintf(buffer, "FILE|0|%s|", file_name);
+                    send(socket, buffer, strlen(buffer), 0);
+                    continue;
+                }
+                struct stat st;
+                stat(file_path, &st);
+                file_size = st.st_size;
+                printf("file size: %d\n", file_size);
+
+                memset(buffer, 0, BUFFER_SIZE);
+                sprintf(buffer, "FILE|%d|%s", file_size, file_name);
+                // send file size
+                send(socket, buffer, BUFFER_SIZE, 0);
+                printf("buffer sent: %s\n", buffer);
+                memset(buffer, 0, BUFFER_SIZE);
+
+                int bytes_sent = 0;
+                int total_bytes_sent = 0;
+                while (total_bytes_sent < file_size)
+                {
+                    // Read the file in chunks
+                    int bytes_read = read(file_descriptor, buffer, BUFFER_SIZE);
+                    if (bytes_read < 0)
+                    {
+                        perror("read");
+                        close(file_descriptor);
+                        continue;
+                    }
+
+                    // Send the chunk to the server
+                    bytes_sent = send(socket, buffer, bytes_read, 0);
+                    if (bytes_sent < 0)
+                    {
+                        perror("send");
+                        close(file_descriptor);
+                        continue;;
+                    }
+
+                    total_bytes_sent += bytes_sent;
+                }
+                close(file_descriptor);
                 continue;
             }
         }
