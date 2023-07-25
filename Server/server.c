@@ -123,11 +123,11 @@ void *connection_handle(void *arg)
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
             {
                 sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
-                printf("%d. file_name:%s, file_size: %d\n", counter, file_name, file_size);
+                printf("%d. Recv file_name:%s, file_size: %d\n", counter, file_name, file_size);
                 int total_bytes_recv = 0;
                 int bytes_recv = 0;
                 sprintf(file_path, "./Server/%s", file_name);
-                printf("file path: %s\n", file_path);
+                printf("file path: %s\n\n", file_path);
 
                 file_descriptor = open(file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
@@ -167,16 +167,16 @@ void *connection_handle(void *arg)
             {
                 // msg format: DOWN|file_name
                 sscanf(buffer, "%*[^|]|%s|", file_name);
-                printf("file_name: %s\n", file_name);
+                printf("%d. Request download file_name: %s\n", counter, file_name);
                 sprintf(file_path, "./Server/%s", file_name);
-                printf("file path: %s\n", file_path);
+                printf("Opening file path: %s\n", file_path);
                 file_descriptor = open(file_path, O_RDONLY);
                 if (file_descriptor == -1)
                 {
                     perror("Error opening file");
                     // send fail message to client with format: FILE|0|file_name
                     memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "FILE|0|%s|", file_name);
+                    sprintf(buffer, "FILE|0|%s", file_name);
                     send(socket, buffer, strlen(buffer), 0);
                     continue;
                 }
@@ -202,6 +202,7 @@ void *connection_handle(void *arg)
                     {
                         perror("read");
                         close(file_descriptor);
+                        printf("\n");
                         continue;
                     }
 
@@ -217,6 +218,7 @@ void *connection_handle(void *arg)
                     total_bytes_sent += bytes_sent;
                 }
                 close(file_descriptor);
+                printf("\n");
                 continue;
             }
         }
