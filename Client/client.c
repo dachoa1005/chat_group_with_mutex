@@ -135,7 +135,8 @@ void *recv_message(void *client_sockfd)
             }
             else if (file_size > 0)
             {
-                sprintf(file_path, "./Client/%s", file_name);
+                // sprintf(file_path, "./Client/%s", file_name);
+                sprintf(file_path, "./%s", file_name);
                 printf("file path: %s\n", file_path);
 
                 down_file(socket, file_size, file_path);
