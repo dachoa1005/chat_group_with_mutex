@@ -14,6 +14,8 @@
 
 int counter;
 pthread_mutex_t lock;
+pthread_mutex_t recv_msg_lock;
+
 pthread_mutex_t client_number_lock;
 
 typedef struct
@@ -92,7 +94,9 @@ void *connection_handle(void *arg)
     do
     {
         memset(buffer, 0, BUFFER_SIZE);
+        pthread_mutex_lock(&recv_msg_lock);
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
+        pthread_mutex_unlock(&recv_msg_lock);
         if (read_len <= 0)
         {
             // Client disconnected
@@ -119,7 +123,7 @@ void *connection_handle(void *arg)
                 int length = strlen("TXT|");
                 memcpy(temp, buffer + length, strlen(buffer) - length + 1);
                 strcat(print_msg, temp);
-                printf("%d. %s\n\n", counter, print_msg);
+                printf("%d. %s\n", counter, print_msg);
                 send_to_all(socket, print_msg);
                 continue;
             }
@@ -223,7 +227,6 @@ void send_file(int socket, char* file_name, char *file_path)
             perror("send");
             close(fd);
             continue;
-            ;
         }
 
         total_bytes_sent += bytes_sent;
@@ -325,6 +328,13 @@ int main(int argc, char const *argv[])
         perror("pthread_mutex_init");
         exit(EXIT_FAILURE);
     }
+
+    if (pthread_mutex_init(&recv_msg_lock, NULL) != 0)
+    {
+        perror("pthread_mutex_init");
+        exit(EXIT_FAILURE);
+    }
+
     if (pthread_mutex_init(&client_number_lock, NULL) != 0)
     {
         perror("pthread_mutex_init");
