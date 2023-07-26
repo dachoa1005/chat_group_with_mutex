@@ -140,6 +140,7 @@ void *recv_message(void *client_sockfd)
                 printf("file path: %s\n", file_path);
 
                 down_file(socket, file_size, file_path);
+                continue;
             }
         }
     }
