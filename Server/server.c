@@ -126,7 +126,7 @@ void *connection_handle(void *arg)
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
             {
                 sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
-                printf("%d. Recv file_name:%s, file_size: %d\n", counter, file_name, file_size);
+                printf("%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
                 int total_bytes_recv = 0;
                 int bytes_recv = 0;
                 // sprintf(file_path, "./Server/%s", file_name);
@@ -142,7 +142,7 @@ void *connection_handle(void *arg)
             {
                 // msg format: DOWN|file_name
                 sscanf(buffer, "%*[^|]|%s|", file_name);
-                printf("%d. Request download file_name: %s\n", counter, file_name);
+                printf("%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
                 // sprintf(file_path, "./Server/%s", file_name);
                 sprintf(file_path, "./%s", file_name);
 
@@ -229,7 +229,7 @@ void send_file(int socket, char* file_name, char *file_path)
         total_bytes_sent += bytes_sent;
     }
     close(fd);
-    printf("\n");
+    // printf("\n");
 }
 
 void recv_file(int socket, int file_size, char *file_path)
