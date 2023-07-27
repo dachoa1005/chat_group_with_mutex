@@ -68,6 +68,7 @@ void *connection_handle(void *arg)
     }
 
     buffer[read_len] = '\0';
+    pthread_mutex_lock(&client_number_lock); 
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd == socket)
@@ -79,7 +80,7 @@ void *connection_handle(void *arg)
             break;
         }
     }
-
+    pthread_mutex_unlock(&client_number_lock);
     printf("Client %s has joined the chat\n", client_name);
 
     do
