@@ -120,7 +120,8 @@ void *recv_message(void *client_sockfd)
         // printf("%s\n", buffer);
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
         {
-            sscanf(buffer, "%*s|%s", msg);
+            // sscanf(buffer, "%*s|%s", msg);
+            memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") +1);
             printf("%s\n", msg);
             continue;
         }
