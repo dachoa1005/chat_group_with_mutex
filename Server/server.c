@@ -24,11 +24,12 @@ typedef struct
     char *name;
 } Client;
 
-Client clients[MAX_CLIENTS];
+Client *clients;
 int client_number = 0;
 
 void send_file(int socket, char *file_name, char *file_path);
 void recv_file(int socket, int file_size, char *file_path);
+char handle_client_disconnection(int socket, char *client_name);
 
 void send_to_all(int socket, char *buffer)
 {
@@ -63,16 +64,7 @@ void *connection_handle(void *arg)
     {
         // Client disconnected before sending the name
         close(socket);
-        pthread_mutex_lock(&client_number_lock);
-        for (int j = 0; j < MAX_CLIENTS; j++)
-        {
-            if (socket == clients[j].sockfd)
-            {
-                clients[j].sockfd = -1;
-                break;
-            }
-        }
-        pthread_mutex_unlock(&client_number_lock);
+        handle_client_disconnection(socket, NULL);
         return NULL;
     }
 
@@ -94,9 +86,9 @@ void *connection_handle(void *arg)
     do
     {
         memset(buffer, 0, BUFFER_SIZE);
-        pthread_mutex_lock(&recv_msg_lock);
+        // pthread_mutex_lock(&recv_msg_lock);
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
-        pthread_mutex_unlock(&recv_msg_lock);
+        // pthread_mutex_unlock(&recv_msg_lock);
         if (read_len <= 0)
         {
             // Client disconnected
@@ -159,24 +151,50 @@ void *connection_handle(void *arg)
     } while (read_len > 0);
 
     // Client disconnected
+    // printf("Client %s has closed the connection\n", client_name);
+
+    // // Delete client from clients array
+    // pthread_mutex_lock(&client_number_lock);
+    // for (int j = 0; j < MAX_CLIENTS; j++)
+    // {
+    //     if (socket == clients[j].sockfd)
+    //     {
+    //         clients[j].sockfd = -1;
+    //         free(clients[j].name);
+    //         clients[j].name = NULL;
+    //         break;
+    //     }
+    // }
+    // pthread_mutex_unlock(&client_number_lock);
+    handle_client_disconnection(socket, client_name);
+    free(client_name);
+    close(socket);
+    return NULL;
+}
+
+void free_client_name(char *client_name)
+{
+    free(client_name);
+}
+
+char handle_client_disconnection(int socket, char *client_name)
+{
     printf("Client %s has closed the connection\n", client_name);
 
-    // Delete client from clients array
+    // Delete client from clients array and free client_name memory
     pthread_mutex_lock(&client_number_lock);
-    for (int j = 0; j < MAX_CLIENTS; j++)
+    for (int j = 0; j < client_number; j++)
     {
         if (socket == clients[j].sockfd)
         {
             clients[j].sockfd = -1;
-            free(clients[j].name);
+            free_client_name(clients[j].name);
             clients[j].name = NULL;
             break;
         }
     }
     pthread_mutex_unlock(&client_number_lock);
-
     close(socket);
-    return NULL;
 }
 
 void send_file(int socket, char* file_name, char *file_path)
@@ -276,6 +294,13 @@ void recv_file(int socket, int file_size, char *file_path)
 int main(int argc, char const *argv[])
 {
     // Init clients sockfd array
+    // Init clients array
+    clients = (Client *)malloc(MAX_CLIENTS * sizeof(Client));
+    if (clients == NULL)
+    {
+        perror("Memory allocation error");
+        exit(EXIT_FAILURE);
+    }
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         clients[i].sockfd = -1;
@@ -355,7 +380,7 @@ int main(int argc, char const *argv[])
         // Lock the client_number mutex to safely update client number and create a thread
         pthread_mutex_lock(&client_number_lock);
         clients[client_number].sockfd = client_sockfd;
-        printf("Client has socketfd: %d has connected.\n\n", client_sockfd);
+        // printf("Client has socketfd: %d has connected.\n\n", client_sockfd);
 
         // Create thread to handle each client
         if (pthread_create(&threads[client_number], NULL, connection_handle, (void *)&client_sockfd) != 0)
