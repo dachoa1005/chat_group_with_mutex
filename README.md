@@ -4,7 +4,7 @@
     - Terminal 1: cd test-ser -> ../build/server port-number
     (trong dir test-ser sẽ chứa các file để client download hoặc chứa các file do client upload)
     - Terminal 2: 
-        - Sửa "SERVER_PORT" trong "run_multiclient.sh" thànhport-numbergiống port-number ở trên.
+        - Sửa "SERVER_PORT" trong "run_multiclient.sh" thành port-number giống port-number ở trên.
         - ./run_multiclient.sh để tạo ̀500 clone clients (với mỗi client có tên là random_number và chờ để nhận message từ các clients khác)
     - Terminal 3: cd client -> ../build/client port-number
     (Client này được dùng để gửi tin nhắn cho các clone clients ở trên và test các command: "/upload <file-path>" hay "/download <file-name>" với file name là tên các file có trong dir test-ser)
