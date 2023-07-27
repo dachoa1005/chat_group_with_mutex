@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #define SERVER_IP "127.0.0.1"
 #define BUFFER_SIZE 1024
 
@@ -30,31 +29,47 @@ void *send_message(void *client_sockfd)
     srand(time(NULL));
     int random_num = rand() % 1000;
     char client_name[100];
+    int recv_len = 0;
 
     // enter name and check then send to server
     sprintf(client_name, "%d", random_num);
+    usleep(100000);
 
     if (send(socket, client_name, sizeof(client_name), 0) < 0)
     {
         perror("send");
         exit(1);
     }
+    printf("%s Connected to server\n", client_name);
 
     char client_input[BUFFER_SIZE];
     char file_path[BUFFER_SIZE];
     char file_name[800];
     char buffer[BUFFER_SIZE];
-    for (int i = 0; i < 100; i++)
-    {
-        usleep(25000);
-        char message[BUFFER_SIZE];
-        sprintf(message, "TXT|Message %d", i + 1);
-        send(socket, message, strlen(message)+1, 0);
-        printf("%s msg: %d\n", client_name, i);
-        usleep(25000);
-    }
+    // for (int i = 0; i < 100; i++)
+    // {
+    //     usleep(100000);
+    //     char message[BUFFER_SIZE];
+    //     sprintf(message, "TXT|Message %d", i + 1);
+    //     if (send(socket, message, strlen(message) + 1, 0) < 0)
+    //     {
+    //         perror("send");
+    //         exit(EXIT_FAILURE);
+    //     };
+    //     // printf("%s msg: %d\n", client_name, i);
+    //     usleep(100000);
+    // }
     printf("%s done \n", client_name);
-
+    while (1)
+    {
+        // sleep(10000);
+        recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
+        if (recv_len == 0)
+        {
+            printf("%s: server disconnected\n", client_name);
+            exit(EXIT_SUCCESS);
+        }
+    }
 }
 
 void send_msg_to_serv(int socket, char *client_input)
@@ -103,8 +118,6 @@ int main(int argc, char *argv[])
         perror("connect");
         exit(1);
     }
-
-    printf("Connected to server\n");
 
     pthread_create(&send_thread, NULL, send_message, (void *)&client_sockfd);
     // pthread_create(&recv_thread, NULL, recv_message, (void *)&client_sockfd);

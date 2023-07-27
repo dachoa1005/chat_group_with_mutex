@@ -391,6 +391,7 @@ int main(int argc, char const *argv[])
         }
 
         client_number += 1;
+        printf("Current client number: %d\n", client_number);
         pthread_mutex_unlock(&client_number_lock);
     }
 
