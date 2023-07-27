@@ -122,7 +122,7 @@ void *connection_handle(void *arg)
                 counter += 1;
                 pthread_mutex_unlock(&lock);
                 sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
-                printf("%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
+                printf("\n%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
                 int total_bytes_recv = 0;
                 int bytes_recv = 0;
                 // sprintf(file_path, "./Server/%s", file_name);
@@ -141,7 +141,7 @@ void *connection_handle(void *arg)
                 pthread_mutex_unlock(&lock);
                 // msg format: DOWN|file_name
                 sscanf(buffer, "%*[^|]|%s|", file_name);
-                printf("%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
+                printf("\n%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
                 // sprintf(file_path, "./Server/%s", file_name);
                 sprintf(file_path, "./%s", file_name);
 
