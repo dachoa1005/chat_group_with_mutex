@@ -25,6 +25,7 @@ typedef struct
 
 Client *clients;
 int client_number = 0;
+int current_client_number = 0;
 
 void send_file(int socket, char *file_name, char *file_path);
 void recv_file(int socket, int file_size, char *file_path);
@@ -64,11 +65,12 @@ void *connection_handle(void *arg)
         // Client disconnected before sending the name
         close(socket);
         handle_client_disconnection(socket, NULL);
+        current_client_number -= 1;
         return NULL;
     }
 
     buffer[read_len] = '\0';
-    pthread_mutex_lock(&client_number_lock); 
+    pthread_mutex_lock(&client_number_lock);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd == socket)
@@ -174,6 +176,7 @@ void *connection_handle(void *arg)
     // }
     // pthread_mutex_unlock(&client_number_lock);
     handle_client_disconnection(socket, client_name);
+    current_client_number -= 1;
     free(client_name);
     close(socket);
     return NULL;
@@ -392,7 +395,8 @@ int main(int argc, char const *argv[])
         }
 
         client_number += 1;
-        printf("Current client number: %d\n", client_number);
+        current_client_number += 1;
+        printf("Current client number: %d\n", current_client_number);
         pthread_mutex_unlock(&client_number_lock);
     }
 
