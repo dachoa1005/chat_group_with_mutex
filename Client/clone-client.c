@@ -22,6 +22,7 @@ void *send_message(void *client_sockfd)
 {
     int socket = *(int *)client_sockfd;
     char client_name[1024];
+    srand(time(NULL));
     int random_num = rand() % 1000;
 
     // enter name and check then send to server
