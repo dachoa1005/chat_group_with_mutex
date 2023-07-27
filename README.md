@@ -9,4 +9,4 @@
     - Terminal 3: cd client -> ../build/client port-number
     (Client này được dùng để gửi tin nhắn cho các clone clients ở trên và test các command: "/upload file-path" hay "/download file-name" với file name là tên các file có trong dir test-ser)
     - Terminal 4: cd client -> ../build/client port-number
-    (Tương tụ với client ở terminal , client ở đây dùng để test chat + /upload + /download)
+    (Tương tụ với client ở terminal 3, client ở đây dùng để test chat + /upload + /download)
