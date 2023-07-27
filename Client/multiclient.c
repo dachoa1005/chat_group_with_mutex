@@ -44,15 +44,16 @@ void *send_message(void *client_sockfd)
     char file_path[BUFFER_SIZE];
     char file_name[800];
     char buffer[BUFFER_SIZE];
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < 100; i++)
     {
-        usleep(1000);
+        usleep(25000);
         char message[BUFFER_SIZE];
         sprintf(message, "TXT|Message %d", i + 1);
         send(socket, message, strlen(message)+1, 0);
         printf("%s msg: %d\n", client_name, i);
+        usleep(25000);
     }
-    // printf("sent ")
+    printf("%s done \n", client_name);
 
 }
 
