@@ -68,7 +68,7 @@ void *send_message(void *client_sockfd)
         else if (strncmp(client_input, "/download ", strlen("/download ")) == 0 || strcmp("/download", client_input) == 0)
         {
             sscanf(client_input, "%*s %s", file_name);
-            printf("file_name: %s\n", file_name);
+            // printf("file_name: %s\n", file_name);
             if (strcmp(file_name, "") == 0)
             {
                 printf("Usage: /download <file-name>\n");
@@ -117,7 +117,7 @@ void *recv_message(void *client_sockfd)
         buffer[recv_len] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
-        printf("%s\n", buffer);
+        // printf("%s\n", buffer);
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
         {
             sscanf(buffer, "%*s|%s", msg);
