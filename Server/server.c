@@ -14,7 +14,6 @@
 
 int counter;
 pthread_mutex_t lock;
-pthread_mutex_t recv_msg_lock;
 
 pthread_mutex_t client_number_lock;
 
@@ -33,7 +32,7 @@ char handle_client_disconnection(int socket, char *client_name);
 
 void send_to_all(int socket, char *buffer)
 {
-    pthread_mutex_lock(&lock); // Protect clients array while sending
+    pthread_mutex_lock(&client_number_lock); // Protect clients array while sending
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
@@ -41,7 +40,7 @@ void send_to_all(int socket, char *buffer)
             send(clients[i].sockfd, buffer, strlen(buffer), 0);
         }
     }
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&client_number_lock);
 }
 
 void *connection_handle(void *arg)
@@ -86,9 +85,7 @@ void *connection_handle(void *arg)
     do
     {
         memset(buffer, 0, BUFFER_SIZE);
-        // pthread_mutex_lock(&recv_msg_lock);
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
-        // pthread_mutex_unlock(&recv_msg_lock);
         if (read_len <= 0)
         {
             // Client disconnected
@@ -103,15 +100,15 @@ void *connection_handle(void *arg)
         {
             memset(print_msg, 0, BUFFER_SIZE);
             memset(temp, 0, BUFFER_SIZE);
-            pthread_mutex_lock(&lock);
-            counter += 1;
-            pthread_mutex_unlock(&lock);
 
             strcat(print_msg, client_name);
             strcat(print_msg, ": ");
 
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
+                pthread_mutex_lock(&lock);
+                counter += 1;
+                pthread_mutex_unlock(&lock);
                 int length = strlen("TXT|");
                 memcpy(temp, buffer + length, strlen(buffer) - length + 1);
                 strcat(print_msg, temp);
@@ -121,6 +118,9 @@ void *connection_handle(void *arg)
             }
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
             {
+                pthread_mutex_lock(&lock);
+                counter += 1;
+                pthread_mutex_unlock(&lock);
                 sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
                 printf("%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
                 int total_bytes_recv = 0;
@@ -136,6 +136,9 @@ void *connection_handle(void *arg)
             }
             else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0) // send file from server to client
             {
+                pthread_mutex_lock(&lock);
+                counter += 1;
+                pthread_mutex_unlock(&lock);
                 // msg format: DOWN|file_name
                 sscanf(buffer, "%*[^|]|%s|", file_name);
                 printf("%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
@@ -197,7 +200,7 @@ char handle_client_disconnection(int socket, char *client_name)
     close(socket);
 }
 
-void send_file(int socket, char* file_name, char *file_path)
+void send_file(int socket, char *file_name, char *file_path)
 {
     char buffer[BUFFER_SIZE];
     int file_size;
@@ -349,12 +352,6 @@ int main(int argc, char const *argv[])
 
     // Init mutex locks
     if (pthread_mutex_init(&lock, NULL) != 0)
-    {
-        perror("pthread_mutex_init");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pthread_mutex_init(&recv_msg_lock, NULL) != 0)
     {
         perror("pthread_mutex_init");
         exit(EXIT_FAILURE);
