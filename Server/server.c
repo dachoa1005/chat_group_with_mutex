@@ -51,7 +51,7 @@ void *connection_handle(void *arg)
     int read_len = 0;
     char msg[BUFFER_SIZE];
     char temp[BUFFER_SIZE];
-    char print_msg[BUFFER_SIZE];
+    char msg_to_print[BUFFER_SIZE];
     char file_name[800];
     char file_path[BUFFER_SIZE];
     int file_size;
@@ -98,22 +98,25 @@ void *connection_handle(void *arg)
 
         if (read_len > 0)
         {
-            memset(print_msg, 0, BUFFER_SIZE);
+            memset(msg_to_print, 0, BUFFER_SIZE);
             memset(temp, 0, BUFFER_SIZE);
 
-            strcat(print_msg, client_name);
-            strcat(print_msg, ": ");
+            strcat(msg_to_print, client_name);
+            strcat(msg_to_print, ": ");
 
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
+                char *buf_to_send;
                 pthread_mutex_lock(&lock);
                 counter += 1;
                 pthread_mutex_unlock(&lock);
                 int length = strlen("TXT|");
                 memcpy(temp, buffer + length, strlen(buffer) - length + 1);
-                strcat(print_msg, temp);
-                printf("%d. %s\n", counter, print_msg);
-                send_to_all(socket, print_msg);
+                strcat(msg_to_print, temp);
+                printf("%d. %s\n", counter, msg_to_print);
+                buf_to_send = malloc(length + strlen(msg_to_print));
+                sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
+                send_to_all(socket, buf_to_send);
                 continue;
             }
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)

@@ -120,10 +120,11 @@ void *recv_message(void *client_sockfd)
         buffer[recv_len] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
-        printf("%s\n", buffer);
+        // printf("%s\n", buffer);
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
         {
-            sscanf(buffer, "%*s|%s", msg);
+            // sscanf(buffer, "%*s|%s", msg);
+            memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") +1);
             printf("%s\n", msg);
             continue;
         }
