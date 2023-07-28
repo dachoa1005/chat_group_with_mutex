@@ -30,19 +30,7 @@ int current_client_number = 0;
 void send_file(int socket, char *file_name, char *file_path);
 void recv_file(int socket, int file_size, char *file_path);
 char handle_client_disconnection(int socket, char *client_name);
-
-void send_to_all(int socket, char *buffer)
-{
-    pthread_mutex_lock(&client_number_lock); // Protect clients array while sending
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
-        {
-            send(clients[i].sockfd, buffer, strlen(buffer), 0);
-        }
-    }
-    pthread_mutex_unlock(&client_number_lock);
-}
+void send_to_all(int socket, char *buffer);
 
 void *connection_handle(void *arg)
 {
@@ -185,6 +173,19 @@ void *connection_handle(void *arg)
 void free_client_name(char *client_name)
 {
     free(client_name);
+}
+
+void send_to_all(int socket, char *buffer)
+{
+    pthread_mutex_lock(&client_number_lock); // Protect clients array while sending
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
+        {
+            send(clients[i].sockfd, buffer, strlen(buffer), 0);
+        }
+    }
+    pthread_mutex_unlock(&client_number_lock);
 }
 
 char handle_client_disconnection(int socket, char *client_name)
