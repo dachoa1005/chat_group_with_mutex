@@ -27,7 +27,7 @@ void *send_message(void *client_sockfd)
 
     // enter name and check then send to server
     sprintf(client_name, "%d", random_num);
-    usleep(10000);
+    usleep(100000);
 
     if (send(socket, client_name, sizeof(client_name), 0) < 0)
     {
@@ -41,9 +41,9 @@ void *send_message(void *client_sockfd)
         exit(1);
     }
 
-    // char client_input[BUFFER_SIZE];
-    // char file_path[BUFFER_SIZE];
-    // char file_name[800];
+    char client_input[BUFFER_SIZE];
+    char file_path[BUFFER_SIZE];
+    char file_name[800];
 
     // while (1)
     // {
@@ -127,6 +127,25 @@ void *recv_message(void *client_sockfd)
             memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") +1);
             printf("%s\n", msg);
             continue;
+        }
+        else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
+        {
+            sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
+            printf("file size: %d, file name: %s\n", file_size, file_name);
+            if (file_size == 0) // file not exist
+            {
+                printf("File not exist\n");
+                continue;
+            }
+            else if (file_size > 0)
+            {
+                // sprintf(file_path, "./Client/%s", file_name);
+                sprintf(file_path, "./%s", file_name);
+                printf("file path: %s\n", file_path);
+
+                down_file(socket, file_size, file_path);
+                continue;
+            }
         }
     }
 }
