@@ -391,7 +391,7 @@ int main(int argc, char const *argv[])
             {
                 clients[j].sockfd = client_sockfd;
                 client_number = j;
-                printf("client number:%d\n", client_number);
+                printf("client index:%d\n", client_number);
                 break;
             }
         }
