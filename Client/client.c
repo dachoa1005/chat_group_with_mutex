@@ -120,7 +120,7 @@ void *recv_message(void *client_sockfd)
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
         {
             // sscanf(buffer, "%*s|%s", msg);
-            memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") +1);
+            memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") + 1);
             printf("%s\n", msg);
             continue;
         }
@@ -221,7 +221,7 @@ void send_file(int socket, char *file_path)
 
 void down_file(int socket, int file_size, char *file_path)
 {
-    char buffer[BUFFER_SIZE];    
+    char buffer[BUFFER_SIZE];
     int file_descriptor = open(file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (file_descriptor == -1)
     {

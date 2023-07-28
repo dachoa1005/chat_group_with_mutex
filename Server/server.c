@@ -163,7 +163,7 @@ void *connection_handle(void *arg)
     // }
     // pthread_mutex_unlock(&client_number_lock);
     handle_client_disconnection(socket, client_name);
-    
+
     free(client_name);
     close(socket);
     return NULL;
@@ -371,9 +371,9 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("Listening on port %d\n", port);
     while (1)
     {
-        printf("Listening on port %d\n", port);
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
         if (client_sockfd < 0)
@@ -385,7 +385,7 @@ int main(int argc, char const *argv[])
         // Lock the client_number mutex to safely update client info and create a thread
         pthread_mutex_lock(&client_number_lock);
         // clients[client_number].sockfd = client_sockfd;
-        for (int j=0; j < MAX_CLIENTS; j++)
+        for (int j = 0; j < MAX_CLIENTS; j++)
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
             {
