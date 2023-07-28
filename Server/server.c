@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#define MAX_CLIENTS 2000
+#define MAX_CLIENTS 10000
 #define BUFFER_SIZE 1024
 
 int counter;
