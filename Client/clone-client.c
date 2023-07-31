@@ -21,7 +21,7 @@ void down_file(int socket, int file_size, char *file_path);
 void *send_message(void *client_sockfd)
 {
     int socket = *(int *)client_sockfd;
-    char client_name[1024];
+    char client_name[100];
     srand(time(NULL) + getpid() + 1);
     int random_num = rand() % 1000;
     char buffer[1024];
@@ -30,25 +30,19 @@ void *send_message(void *client_sockfd)
     sprintf(client_name, "%d", random_num);
     // usleep(100000);
 
-    if (send(socket, client_name, sizeof(client_name), 0) < 0)
+    if (send(socket, client_name, strlen(client_name), 0) < 0)
     {
         perror("send");
         exit(1);
     }
     printf("%s Connected to server\n", client_name);
-    if (send(socket, client_name, sizeof(client_name), 0) < 0)
+    sprintf(buffer, "TXT|Hello from %s", client_name);
+    for (int i = 0; i < 10; i++)
     {
-        perror("send");
-        exit(1);
+        usleep(500000);
+        send(socket, buffer, strlen(buffer), 0);
+        usleep(500000);
     }
-    // usleep(100000);
-
-    sprintf(buffer, "TXT|%s", client_name);
-    send(socket, buffer, strlen(buffer), 0);
-
-    char client_input[BUFFER_SIZE];
-    char file_path[BUFFER_SIZE];
-    char file_name[800];
 }
 
 void *recv_message(void *client_sockfd)
@@ -63,7 +57,8 @@ void *recv_message(void *client_sockfd)
     while (1)
     {
         usleep(1000);
-        memset(buffer, 0, sizeof(buffer));
+        memset(buffer, 0, BUFFER_SIZE);
+        memset(msg, 0, BUFFER_SIZE);
         int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
