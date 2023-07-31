@@ -24,10 +24,11 @@ void *send_message(void *client_sockfd)
     char client_name[1024];
     srand(time(NULL) + getpid() + 1);
     int random_num = rand() % 1000;
+    char buffer[1024];
 
     // enter name and check then send to server
     sprintf(client_name, "%d", random_num);
-    usleep(100000);
+    // usleep(100000);
 
     if (send(socket, client_name, sizeof(client_name), 0) < 0)
     {
@@ -40,6 +41,10 @@ void *send_message(void *client_sockfd)
         perror("send");
         exit(1);
     }
+    // usleep(100000);
+
+    sprintf(buffer, "TXT|%s", client_name);
+    send(socket, buffer, strlen(buffer), 0);
 
     char client_input[BUFFER_SIZE];
     char file_path[BUFFER_SIZE];
@@ -106,6 +111,8 @@ void *recv_message(void *client_sockfd)
 
     while (1)
     {
+        usleep(1000);
+        memset(buffer, 0, sizeof(buffer));
         int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
@@ -120,7 +127,6 @@ void *recv_message(void *client_sockfd)
         buffer[recv_len] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
-        // printf("%s\n", buffer);
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
         {
             // sscanf(buffer, "%*s|%s", msg);

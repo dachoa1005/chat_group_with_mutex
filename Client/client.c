@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define SERVER_IP "127.0.0.1"
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 100
 #define FILE_NAME_SIZE 500
 #define FILE_PATH_SIZE 1000
 
@@ -105,6 +105,8 @@ void *recv_message(void *client_sockfd)
 
     while (1)
     {
+        // usleep(1000);
+        memset(buffer, 0, sizeof(buffer));
         int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
@@ -188,6 +190,7 @@ void send_file(int socket, char *file_path)
     int total_bytes_sent = 0;
     while (total_bytes_sent < file_size)
     {
+        usleep(1000);
         // Read the file in chunks
         int bytes_read = read(fd, buffer, BUFFER_SIZE);
         if (bytes_read < 0)

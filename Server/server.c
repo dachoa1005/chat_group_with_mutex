@@ -15,6 +15,7 @@
 #define FILE_PATH_SIZE 1000
 int counter;
 pthread_mutex_t counter_lock;
+pthread_mutex_t socket_lock;
 pthread_mutex_t clients_lock[MAX_CLIENTS];
 pthread_mutex_t client_sockfd_lock;
 pthread_mutex_t client_number_lock;
@@ -37,7 +38,7 @@ void *connection_handle(void *arg);
 void recv_client_name(int socket, char **client_name);
 void handle_message(int socket, const char *buffer, char *msg_to_print);
 void handle_upload(int socket, const char *buffer, const char *client_name);
-void handle_download(int socket, const char *buffer, const char *client_name); 
+void handle_download(int socket, const char *buffer, const char *client_name);
 
 void *connection_handle(void *arg)
 {
@@ -77,22 +78,21 @@ void *connection_handle(void *arg)
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
                 handle_message(socket, buffer, msg_to_print);
-            } else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0) 
+            }
+            else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
             {
                 handle_upload(socket, buffer, client_name);
             }
-            else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0) 
+            else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0)
             {
                 handle_download(socket, buffer, client_name);
             }
         }
     } while (read_len > 0);
-
-    
-
 }
 
-void handle_message(int socket, const char *buffer, char *msg_to_print) {
+void handle_message(int socket, const char *buffer, char *msg_to_print)
+{
     char temp[BUFFER_SIZE];
     char *buf_to_send;
     pthread_mutex_lock(&counter_lock);
@@ -105,12 +105,13 @@ void handle_message(int socket, const char *buffer, char *msg_to_print) {
     buf_to_send = malloc(length + strlen(msg_to_print));
     sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
     send_to_all(socket, buf_to_send);
+    memset(buffer, 0, BUFFER_SIZE);
+    memset(temp, 0, BUFFER_SIZE);
 }
 
-void handle_upload(int socket, const char *buffer, const char *client_name) {
-    pthread_mutex_lock(&counter_lock);
-    counter += 1;
-    pthread_mutex_unlock(&counter_lock);
+void handle_upload(int socket, const char *buffer, const char *client_name)
+{
+
     int file_size;
     char file_name[FILE_NAME_SIZE];
     sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
@@ -126,7 +127,8 @@ void handle_upload(int socket, const char *buffer, const char *client_name) {
     memset(file_path, 0, sizeof(file_path));
 }
 
-void handle_download(int socket, const char *buffer, const char *client_name) {
+void handle_download(int socket, const char *buffer, const char *client_name)
+{
     pthread_mutex_lock(&counter_lock);
     counter += 1;
     pthread_mutex_unlock(&counter_lock);
@@ -142,14 +144,14 @@ void handle_download(int socket, const char *buffer, const char *client_name) {
     printf("\n");
 }
 
-
 void recv_client_name(int socket, char **client_name)
 {
     char buffer[BUFFER_SIZE];
     int read_len = 0;
 
     read_len = recv(socket, buffer, BUFFER_SIZE, 0);
-    if (read_len <= 0) {
+    if (read_len <= 0)
+    {
         // Client disconnected before sending the name
         handle_client_disconnection(socket, NULL);
         // close(socket);
@@ -158,13 +160,15 @@ void recv_client_name(int socket, char **client_name)
 
     buffer[read_len] = '\0';
     pthread_mutex_lock(&client_number_lock);
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (clients[i].sockfd == socket) {
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == socket)
+        {
             pthread_mutex_lock(&clients_lock[i]);
             clients[i].name = malloc(strlen(buffer) + 1);
             strcpy(clients[i].name, buffer);
             *client_name = malloc(strlen(buffer) + 1); // Update the value of client_name using a double pointer
-            strcpy(*client_name, buffer); // Dereference the double pointer to modify the value it points to
+            strcpy(*client_name, buffer);              // Dereference the double pointer to modify the value it points to
             pthread_mutex_unlock(&clients_lock[i]);
             break;
         }
@@ -185,7 +189,10 @@ void send_to_all(int socket, char *buffer)
     {
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
         {
+            pthread_mutex_lock(&socket_lock);
             send(clients[i].sockfd, buffer, strlen(buffer), 0);
+            // usleep(BUFFER_SIZE);
+            pthread_mutex_unlock(&socket_lock);
         }
     }
     pthread_mutex_unlock(&client_number_lock);
@@ -195,7 +202,7 @@ void handle_client_disconnection(int socket, char *client_name)
 {
     if (client_name != NULL)
         printf("Client %s has closed the connection\n", client_name);
-    else 
+    else
         printf("Client has sockfd: %d has closed the connection\n", socket);
     // Delete client from clients array and free client_name memory
     pthread_mutex_lock(&client_number_lock);
@@ -233,7 +240,7 @@ void send_file(int socket, char *file_name, char *file_path)
         return;
     }
 
-    //get file size
+    // get file size
     struct stat st;
     stat(file_path, &st);
     file_size = st.st_size;
@@ -290,6 +297,9 @@ void recv_file(int socket, int file_size, char *file_path)
     while (total_bytes_recv < file_size)
     {
         memset(buffer, 0, BUFFER_SIZE);
+        pthread_mutex_lock(&counter_lock);
+        counter += 1;
+        pthread_mutex_unlock(&counter_lock);
         bytes_recv = recv(socket, buffer, BUFFER_SIZE, 0);
         if (bytes_recv == -1)
         {
@@ -305,6 +315,7 @@ void recv_file(int socket, int file_size, char *file_path)
             continue;
         }
         total_bytes_recv += bytes_recv;
+        printf("%d. Recv total %d\n", counter, total_bytes_recv);
     }
     close(fd);
     return;
@@ -327,11 +338,18 @@ void init_clients_array()
 
 void init_mutex_lock()
 {
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (pthread_mutex_init(&clients_lock[i], NULL) != 0) {
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (pthread_mutex_init(&clients_lock[i], NULL) != 0)
+        {
             perror("pthread_mutex_init");
             exit(EXIT_FAILURE);
         }
+    }
+    if (pthread_mutex_init(&socket_lock, NULL) != 0)
+    {
+        perror("pthread_mutex_init");
+        exit(EXIT_FAILURE);
     }
 
     if (pthread_mutex_init(&counter_lock, NULL) != 0)
@@ -443,7 +461,6 @@ int main(int argc, char const *argv[])
         printf("Current client number: %d\n", current_client_number);
         pthread_mutex_unlock(&client_number_lock);
         pthread_mutex_unlock(&client_sockfd_lock);
-
     }
 
     // Destroy the mutexes
