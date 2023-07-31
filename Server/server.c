@@ -30,7 +30,7 @@ int current_client_number = 0;
 
 void send_file(int socket, char *file_name, char *file_path);
 void recv_file(int socket, int file_size, char *file_path);
-char handle_client_disconnection(int socket, char *client_name);
+void handle_client_disconnection(int socket, char *client_name);
 void send_to_all(int socket, char *buffer);
 void *connection_handle(void *arg);
 void recv_client_name(int socket, char **client_name);
@@ -55,8 +55,10 @@ void *connection_handle(void *arg)
         read_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (read_len <= 0)
         {
-            // Client disconnected
-            break;
+            handle_client_disconnection(socket, client_name);
+            free(client_name);
+            // close(socket);
+            return NULL;
         }
         if (strcmp(buffer, "") == 0)
             continue;
@@ -85,11 +87,8 @@ void *connection_handle(void *arg)
         }
     } while (read_len > 0);
 
-    if (client_name != NULL)
-        handle_client_disconnection(socket, client_name);
-    free(client_name);
-    close(socket);
-    return NULL;
+    
+
 }
 
 void handle_message(int socket, const char *buffer, char *msg_to_print) {
@@ -151,8 +150,8 @@ void recv_client_name(int socket, char **client_name)
     read_len = recv(socket, buffer, BUFFER_SIZE, 0);
     if (read_len <= 0) {
         // Client disconnected before sending the name
-        close(socket);
         handle_client_disconnection(socket, NULL);
+        // close(socket);
         return;
     }
 
@@ -189,10 +188,12 @@ void send_to_all(int socket, char *buffer)
     pthread_mutex_unlock(&client_number_lock);
 }
 
-char handle_client_disconnection(int socket, char *client_name)
+void handle_client_disconnection(int socket, char *client_name)
 {
-    printf("Client %s has closed the connection\n", client_name);
-
+    if (client_name != NULL)
+        printf("Client %s has closed the connection\n", client_name);
+    else 
+        printf("Client has sockfd: %d has closed the connection\n", socket);
     // Delete client from clients array and free client_name memory
     pthread_mutex_lock(&client_number_lock);
     for (int j = 0; j < MAX_CLIENTS; j++)
@@ -207,6 +208,7 @@ char handle_client_disconnection(int socket, char *client_name)
         }
     }
     pthread_mutex_unlock(&client_number_lock);
+    // Close client's socket
     close(socket);
 }
 
