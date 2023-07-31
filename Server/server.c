@@ -15,7 +15,7 @@
 #define FILE_PATH_SIZE 1000
 int counter;
 pthread_mutex_t counter_lock;
-
+pthread_mutex_t clients_lock[MAX_CLIENTS];
 pthread_mutex_t client_number_lock;
 
 typedef struct
@@ -159,10 +159,12 @@ void recv_client_name(int socket, char **client_name)
     pthread_mutex_lock(&client_number_lock);
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (clients[i].sockfd == socket) {
+            pthread_mutex_lock(&clients_lock[i]);
             clients[i].name = malloc(strlen(buffer) + 1);
             strcpy(clients[i].name, buffer);
             *client_name = malloc(strlen(buffer) + 1); // Update the value of client_name using a double pointer
             strcpy(*client_name, buffer); // Dereference the double pointer to modify the value it points to
+            pthread_mutex_unlock(&clients_lock[i]);
             break;
         }
     }
@@ -200,10 +202,12 @@ void handle_client_disconnection(int socket, char *client_name)
     {
         if (socket == clients[j].sockfd)
         {
+            pthread_mutex_lock(&clients_lock[j]);
             clients[j].sockfd = -1;
             free_client_name(clients[j].name);
             clients[j].name = NULL;
             current_client_number -= 1;
+            pthread_mutex_unlock(&clients_lock[j]);
             break;
         }
     }
@@ -322,6 +326,13 @@ void init_clients_array()
 
 void init_mutex_lock()
 {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (pthread_mutex_init(&clients_lock[i], NULL) != 0) {
+            perror("pthread_mutex_init");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     if (pthread_mutex_init(&counter_lock, NULL) != 0)
     {
         perror("pthread_mutex_init");
@@ -402,9 +413,11 @@ int main(int argc, char const *argv[])
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
             {
+                pthread_mutex_lock(&clients_lock[j]);
                 clients[j].sockfd = client_sockfd;
                 client_number = j;
                 printf("client index:%d\n", client_number);
+                pthread_mutex_unlock(&clients_lock[j]);
                 break;
             }
         }
