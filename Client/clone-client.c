@@ -49,55 +49,6 @@ void *send_message(void *client_sockfd)
     char client_input[BUFFER_SIZE];
     char file_path[BUFFER_SIZE];
     char file_name[800];
-
-    // while (1)
-    // {
-    //     memset(client_input, 0, BUFFER_SIZE);
-    //     // memset(file_path, 0, sizeof(file_path));
-
-    //     fgets(client_input, BUFFER_SIZE, stdin);
-    //     client_input[strlen(client_input) - 1] = '\0';
-    //     if (strcmp(client_input, "") == 0)
-    //         continue;
-
-    //     if (strncmp(client_input, "/upload ", strlen("/upload ")) == 0 || strcmp("/upload", client_input) == 0)
-    //     {
-    //         sscanf(client_input, "%*s %s", file_path);
-    //         printf("file_path: %s\n", file_path);
-    //         if (strcmp(file_path, "") == 0)
-    //         {
-    //             printf("Usage: /upload <file-path>\n");
-    //             continue;
-    //         }
-    //         send_file(socket, file_path); // check if fopen ==NULL
-    //         memset(file_path, 0, sizeof(file_path));
-    //         continue;
-    //     }
-    //     else if (strncmp(client_input, "/download ", strlen("/download ")) == 0 || strcmp("/download", client_input) == 0)
-    //     {
-    //         sscanf(client_input, "%*s %s", file_name);
-    //         printf("file_name: %s\n", file_name);
-    //         if (strcmp(file_name, "") == 0)
-    //         {
-    //             printf("Usage: /download <file-name>\n");
-    //             continue;
-    //         }
-
-    //         char buffer[BUFFER_SIZE];
-    //         memset(buffer, 0, BUFFER_SIZE);
-    //         sprintf(buffer, "DOWN|%s", file_name);
-    //         send(socket, buffer, sizeof(buffer), 0);
-    //         memset(file_name, 0, sizeof(file_name));
-    //         continue;
-    //     }
-    //     else
-    //     // client_input = message
-    //     {
-    //         // printf("client_input: %s\n", client_input);
-    //         send_msg_to_serv(socket, client_input);
-    //         continue;
-    //     }
-    // }
 }
 
 void *recv_message(void *client_sockfd)
@@ -191,16 +142,6 @@ void send_file(int socket, char *file_path)
     send(socket, buffer, sizeof(buffer), 0);
     printf("buffer sent: %s\n", buffer);
     memset(buffer, 0, BUFFER_SIZE);
-
-    // while (read(fd, buffer, BUFFER_SIZE))
-    // {
-    //     bytes_sent += send(socket, buffer, strlen(buffer), 0);
-    //     printf("file buffer sent: %s\n",buffer);
-    //     memset(buffer, 0, BUFFER_SIZE);
-    // }
-    // printf("bytes sent: %d\n", bytes_sent);
-    // close(fd);
-    // return;
 
     int bytes_sent = 0;
     int total_bytes_sent = 0;
