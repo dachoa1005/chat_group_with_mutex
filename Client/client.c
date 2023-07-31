@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define SERVER_IP "127.0.0.1"
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 1024
 #define FILE_NAME_SIZE 500
 #define FILE_PATH_SIZE 1000
 
