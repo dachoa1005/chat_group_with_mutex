@@ -267,7 +267,6 @@ void send_file(int socket, char *file_name, char *file_path)
         total_bytes_sent += bytes_sent;
     }
     close(fd);
-    // printf("\n");
 }
 
 void recv_file(int socket, int file_size, char *file_path)
@@ -301,9 +300,7 @@ void recv_file(int socket, int file_size, char *file_path)
             continue;
         }
         total_bytes_recv += bytes_recv;
-        // printf("%s", buffer);
     }
-    // printf("\ntotal bytes recv: %d\n", total_bytes_recv);
     close(fd);
     return;
 }
@@ -401,7 +398,6 @@ int main(int argc, char const *argv[])
 
         // Lock the client_number mutex to safely update client info and create a thread
         pthread_mutex_lock(&client_number_lock);
-        // clients[client_number].sockfd = client_sockfd;
         for (int j = 0; j < MAX_CLIENTS; j++)
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
@@ -422,7 +418,6 @@ int main(int argc, char const *argv[])
             exit(EXIT_FAILURE);
         }
 
-        // client_number += 1;
         current_client_number += 1;
         printf("Current client number: %d\n", current_client_number);
         pthread_mutex_unlock(&client_number_lock);
