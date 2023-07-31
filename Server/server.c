@@ -185,13 +185,13 @@ void free_client_name(char *client_name)
 void send_to_all(int socket, char *buffer)
 {
     pthread_mutex_lock(&client_number_lock); // Protect clients array while sending
+    printf("Sending to all clients: %s\n", buffer);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
         {
             pthread_mutex_lock(&socket_lock);
             send(clients[i].sockfd, buffer, strlen(buffer), 0);
-            // usleep(BUFFER_SIZE);
             pthread_mutex_unlock(&socket_lock);
         }
     }
