@@ -44,13 +44,7 @@ void *connection_handle(void *arg)
     char buffer[BUFFER_SIZE];
     char *client_name;
     int read_len = 0;
-    char msg[BUFFER_SIZE];
-    char temp[BUFFER_SIZE];
     char msg_to_print[BUFFER_SIZE];
-    char file_name[800];
-    char file_path[BUFFER_SIZE];
-    int file_size;
-    int file_descriptor;
 
     // Get client name
     recv_client_name(socket, &client_name);
@@ -73,7 +67,6 @@ void *connection_handle(void *arg)
         if (read_len > 0)
         {
             memset(msg_to_print, 0, BUFFER_SIZE);
-            memset(temp, 0, BUFFER_SIZE);
 
             strcat(msg_to_print, client_name);
             strcat(msg_to_print, ": ");
@@ -92,7 +85,8 @@ void *connection_handle(void *arg)
         }
     } while (read_len > 0);
 
-    handle_client_disconnection(socket, client_name);
+    if (client_name != NULL)
+        handle_client_disconnection(socket, client_name);
     free(client_name);
     close(socket);
     return NULL;
@@ -231,6 +225,8 @@ void send_file(int socket, char *file_name, char *file_path)
         send(socket, buffer, strlen(buffer), 0);
         return;
     }
+
+    //get file size
     struct stat st;
     stat(file_path, &st);
     file_size = st.st_size;
