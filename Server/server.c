@@ -11,7 +11,8 @@
 
 #define MAX_CLIENTS 10000
 #define BUFFER_SIZE 1024
-
+#define FILE_NAME_SIZE 500
+#define FILE_PATH_SIZE 1000
 int counter;
 pthread_mutex_t counter_lock;
 
@@ -31,6 +32,11 @@ void send_file(int socket, char *file_name, char *file_path);
 void recv_file(int socket, int file_size, char *file_path);
 char handle_client_disconnection(int socket, char *client_name);
 void send_to_all(int socket, char *buffer);
+void *connection_handle(void *arg);
+void recv_client_name(int socket, char **client_name);
+void handle_message(int socket, const char *buffer, char *msg_to_print);
+void handle_upload(int socket, const char *buffer, const char *client_name);
+void handle_download(int socket, const char *buffer, const char *client_name); 
 
 void *connection_handle(void *arg)
 {
@@ -47,30 +53,7 @@ void *connection_handle(void *arg)
     int file_descriptor;
 
     // Get client name
-    read_len = recv(socket, buffer, BUFFER_SIZE, 0);
-    if (read_len <= 0)
-    {
-        // Client disconnected before sending the name
-        close(socket);
-        handle_client_disconnection(socket, NULL);
-        return NULL;
-    }
-
-    buffer[read_len] = '\0';
-    pthread_mutex_lock(&client_number_lock);
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (clients[i].sockfd == socket)
-        {
-            clients[i].name = malloc(strlen(buffer) + 1);
-            strcpy(clients[i].name, buffer);
-            client_name = malloc(strlen(buffer) + 1);
-            strcpy(client_name, buffer);
-            break;
-        }
-    }
-    pthread_mutex_unlock(&client_number_lock);
-    printf("Client %s has joined the chat\n", client_name);
+    recv_client_name(socket, &client_name);
 
     do
     {
@@ -83,6 +66,7 @@ void *connection_handle(void *arg)
         }
         if (strcmp(buffer, "") == 0)
             continue;
+
         buffer[read_len] = '\0';
         // printf("buffer: %s\n", buffer);
 
@@ -96,77 +80,101 @@ void *connection_handle(void *arg)
 
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
-                char *buf_to_send;
-                pthread_mutex_lock(&counter_lock);
-                counter += 1;
-                pthread_mutex_unlock(&counter_lock);
-                int length = strlen("TXT|");
-                memcpy(temp, buffer + length, strlen(buffer) - length + 1);
-                strcat(msg_to_print, temp);
-                printf("%d. %s\n", counter, msg_to_print);
-                buf_to_send = malloc(length + strlen(msg_to_print));
-                sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
-                send_to_all(socket, buf_to_send);
-                continue;
-            }
-            else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
+                handle_message(socket, buffer, msg_to_print);
+            } else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0) 
             {
-                pthread_mutex_lock(&counter_lock);
-                counter += 1;
-                pthread_mutex_unlock(&counter_lock);
-                sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
-                printf("\n%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
-                int total_bytes_recv = 0;
-                int bytes_recv = 0;
-                // sprintf(file_path, "./Server/%s", file_name);
-                sprintf(file_path, "./%s", file_name);
-                printf("file path: %s\n\n", file_path);
-
-                recv_file(socket, file_size, file_path);
-                memset(file_name, 0, sizeof(file_name));
-                memset(file_path, 0, sizeof(file_path));
-                continue;
+                handle_upload(socket, buffer, client_name);
             }
-            else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0) // send file from server to client
+            else if (strncmp(buffer, "DOWN|", strlen("DOWN|")) == 0) 
             {
-                pthread_mutex_lock(&counter_lock);
-                counter += 1;
-                pthread_mutex_unlock(&counter_lock);
-                // msg format: DOWN|file_name
-                sscanf(buffer, "%*[^|]|%s|", file_name);
-                printf("\n%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
-                // sprintf(file_path, "./Server/%s", file_name);
-                sprintf(file_path, "./%s", file_name);
-
-                printf("Opening file path: %s\n", file_path);
-                send_file(socket, file_name, file_path);
-                printf("\n");
-                continue;
+                handle_download(socket, buffer, client_name);
             }
         }
     } while (read_len > 0);
 
-    // Client disconnected
-    // printf("Client %s has closed the connection\n", client_name);
-
-    // // Delete client from clients array
-    // pthread_mutex_lock(&client_number_lock);
-    // for (int j = 0; j < MAX_CLIENTS; j++)
-    // {
-    //     if (socket == clients[j].sockfd)
-    //     {
-    //         clients[j].sockfd = -1;
-    //         free(clients[j].name);
-    //         clients[j].name = NULL;
-    //         break;
-    //     }
-    // }
-    // pthread_mutex_unlock(&client_number_lock);
     handle_client_disconnection(socket, client_name);
-
     free(client_name);
     close(socket);
     return NULL;
+}
+
+void handle_message(int socket, const char *buffer, char *msg_to_print) {
+    char temp[BUFFER_SIZE];
+    char *buf_to_send;
+    pthread_mutex_lock(&counter_lock);
+    counter += 1;
+    pthread_mutex_unlock(&counter_lock);
+    int length = strlen("TXT|");
+    memcpy(temp, buffer + length, strlen(buffer) - length + 1);
+    strcat(msg_to_print, temp);
+    printf("%d. %s\n", counter, msg_to_print);
+    buf_to_send = malloc(length + strlen(msg_to_print));
+    sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
+    send_to_all(socket, buf_to_send);
+}
+
+void handle_upload(int socket, const char *buffer, const char *client_name) {
+    pthread_mutex_lock(&counter_lock);
+    counter += 1;
+    pthread_mutex_unlock(&counter_lock);
+    int file_size;
+    char file_name[FILE_NAME_SIZE];
+    sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
+    printf("\n%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
+    int total_bytes_recv = 0;
+    int bytes_recv = 0;
+    char file_path[FILE_PATH_SIZE];
+    sprintf(file_path, "./%s", file_name);
+    printf("file path: %s\n\n", file_path);
+
+    recv_file(socket, file_size, file_path);
+    memset(file_name, 0, sizeof(file_name));
+    memset(file_path, 0, sizeof(file_path));
+}
+
+void handle_download(int socket, const char *buffer, const char *client_name) {
+    pthread_mutex_lock(&counter_lock);
+    counter += 1;
+    pthread_mutex_unlock(&counter_lock);
+    char file_name[FILE_NAME_SIZE];
+    // msg format: DOWN|file_name
+    sscanf(buffer, "%*[^|]|%s|", file_name);
+    printf("\n%d. Request download file_name: %s from client %s (sockfd: %d)\n", counter, file_name, client_name, socket);
+    char file_path[FILE_PATH_SIZE];
+    sprintf(file_path, "./%s", file_name);
+
+    printf("Opening file path: %s\n", file_path);
+    send_file(socket, file_name, file_path);
+    printf("\n");
+}
+
+
+void recv_client_name(int socket, char **client_name)
+{
+    char buffer[BUFFER_SIZE];
+    int read_len = 0;
+
+    read_len = recv(socket, buffer, BUFFER_SIZE, 0);
+    if (read_len <= 0) {
+        // Client disconnected before sending the name
+        close(socket);
+        handle_client_disconnection(socket, NULL);
+        return;
+    }
+
+    buffer[read_len] = '\0';
+    pthread_mutex_lock(&client_number_lock);
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i].sockfd == socket) {
+            clients[i].name = malloc(strlen(buffer) + 1);
+            strcpy(clients[i].name, buffer);
+            *client_name = malloc(strlen(buffer) + 1); // Update the value of client_name using a double pointer
+            strcpy(*client_name, buffer); // Dereference the double pointer to modify the value it points to
+            break;
+        }
+    }
+    pthread_mutex_unlock(&client_number_lock);
+    printf("Client %s has joined the chat\n", *client_name); // Dereference the double pointer to print the updated value
 }
 
 void free_client_name(char *client_name)
@@ -267,8 +275,8 @@ void send_file(int socket, char *file_name, char *file_path)
 void recv_file(int socket, int file_size, char *file_path)
 {
     char buffer[BUFFER_SIZE];
-    int total_bytes_recv;
-    int bytes_recv;
+    int total_bytes_recv = 0;
+    int bytes_recv = 0;
 
     int fd = open(file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
@@ -302,10 +310,8 @@ void recv_file(int socket, int file_size, char *file_path)
     return;
 }
 
-int main(int argc, char const *argv[])
+void init_clients_array()
 {
-    // Init clients sockfd array
-    // Init clients array
     clients = (Client *)malloc(MAX_CLIENTS * sizeof(Client));
     if (clients == NULL)
     {
@@ -317,18 +323,44 @@ int main(int argc, char const *argv[])
         clients[i].sockfd = -1;
         clients[i].name = NULL;
     }
+}
 
-    if (argc < 2)
+void init_mutex_lock()
+{
+    if (pthread_mutex_init(&counter_lock, NULL) != 0)
     {
-        printf("Usage: %s <port>\n", argv[0]);
+        perror("pthread_mutex_init");
         exit(EXIT_FAILURE);
     }
+
+    if (pthread_mutex_init(&client_number_lock, NULL) != 0)
+    {
+        perror("pthread_mutex_init");
+        exit(EXIT_FAILURE);
+    }
+    return;
+}
+
+int main(int argc, char const *argv[])
+{
     int port = atoi(argv[1]);
     int server_sockfd, client_sockfd;
     struct sockaddr_in server_address;
     int addrlen = sizeof(server_address);
     char buffer[BUFFER_SIZE] = {0};
     pthread_t threads[MAX_CLIENTS];
+
+    // Init clients sockfd array
+    init_clients_array();
+
+    // Init mutex locks
+    init_mutex_lock();
+
+    if (argc < 2)
+    {
+        printf("Usage: %s <port>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     // Create server socket
     if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -355,19 +387,6 @@ int main(int argc, char const *argv[])
     if (listen(server_sockfd, MAX_CLIENTS) < 0)
     {
         perror("listen");
-        exit(EXIT_FAILURE);
-    }
-
-    // Init mutex locks
-    if (pthread_mutex_init(&counter_lock, NULL) != 0)
-    {
-        perror("pthread_mutex_init");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pthread_mutex_init(&client_number_lock, NULL) != 0)
-    {
-        perror("pthread_mutex_init");
         exit(EXIT_FAILURE);
     }
 

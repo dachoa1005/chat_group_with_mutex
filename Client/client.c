@@ -179,19 +179,9 @@ void send_file(int socket, char *file_path)
     sprintf(buffer, "FILE|%d|%s", file_size, file_name);
     // send file_size
     send(socket, buffer, sizeof(buffer), 0);
-    printf("buffer sent: %s\n", buffer);
+    // printf("buffer sent: %s\n", buffer);
     memset(buffer, 0, BUFFER_SIZE);
-
-    // while (read(fd, buffer, BUFFER_SIZE))
-    // {
-    //     bytes_sent += send(socket, buffer, strlen(buffer), 0);
-    //     printf("file buffer sent: %s\n",buffer);
-    //     memset(buffer, 0, BUFFER_SIZE);
-    // }
-    // printf("bytes sent: %d\n", bytes_sent);
-    // close(fd);
-    // return;
-
+    
     int bytes_sent = 0;
     int total_bytes_sent = 0;
     while (total_bytes_sent < file_size)
