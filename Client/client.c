@@ -105,8 +105,9 @@ void *recv_message(void *client_sockfd)
 
     while (1)
     {
-        // usleep(1000);
+        usleep(1000);
         memset(buffer, 0, sizeof(buffer));
+        memset(msg, 0, sizeof(msg));
         int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
         if (recv_len < 0)
         {
