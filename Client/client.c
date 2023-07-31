@@ -11,6 +11,8 @@
 
 #define SERVER_IP "127.0.0.1"
 #define BUFFER_SIZE 1024
+#define FILE_NAME_SIZE 500
+#define FILE_PATH_SIZE 1000
 
 void *send_message(void *client_sockfd);
 void *recv_message(void *client_sockfd);
@@ -39,8 +41,8 @@ void *send_message(void *client_sockfd)
     }
 
     char client_input[BUFFER_SIZE];
-    char file_path[BUFFER_SIZE];
-    char file_name[800];
+    char file_path[FILE_PATH_SIZE];
+    char file_name[FILE_NAME_SIZE];
 
     while (1)
     {
