@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Replace SERVER_ADDRESS and SERVER_PORT with your server's address and port
-SERVER_PORT="88889"
+SERVER_PORT="8888"
 
 NUM_CLIENTS=500
 
