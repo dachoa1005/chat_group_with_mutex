@@ -61,7 +61,6 @@ void *connection_handle(void *arg)
             handle_client_disconnection(socket, client_name);
             // free(client_name);
             // close(socket);
-            
         }
         if (strcmp(buffer, "") == 0)
             continue;
@@ -444,18 +443,30 @@ int main(int argc, char const *argv[])
 
         // Lock the client number mutex to safely update client info and create a thread
         pthread_mutex_lock(&client_number_lock);
-        for (int j = 0; j < MAX_CLIENTS; j++)
+        // for (int j = 0; j < MAX_CLIENTS; j++)
+        // {
+        //     if (clients[j].sockfd == -1 && clients[j].name == NULL)
+        //     {
+        //         pthread_mutex_lock(&clients_lock[j]);
+        //         clients[j].sockfd = client_sockfd;
+        //         client_index = j;
+        //         printf("client index:%d\n", client_index);
+        //         pthread_mutex_unlock(&clients_lock[j]);
+        //         break;
+        //     }
+        // }
+        while (clients[client_index].sockfd != -1 && clients[client_index].name != NULL)
         {
-            if (clients[j].sockfd == -1 && clients[j].name == NULL)
-            {
-                pthread_mutex_lock(&clients_lock[j]);
-                clients[j].sockfd = client_sockfd;
-                client_index = j;
-                printf("client index:%d\n", client_index);
-                pthread_mutex_unlock(&clients_lock[j]);
-                break;
-            }
+            client_index += 1;
+            if (client_index == MAX_CLIENTS)
+                client_index = 0;
         }
+        // add client to clients array
+        pthread_mutex_lock(&clients_lock[client_index]);
+        clients[client_index].sockfd = client_sockfd;
+        printf("client index:%d\n", client_index);
+        pthread_mutex_unlock(&clients_lock[client_index]);
+        
         // printf("Client has socketfd: %d has connected.\n\n", client_sockfd);
 
         // Create thread to handle each client
