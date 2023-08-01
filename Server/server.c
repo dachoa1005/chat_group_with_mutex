@@ -61,7 +61,7 @@ void *connection_handle(void *arg)
             handle_client_disconnection(socket, client_name);
             free(client_name);
             // close(socket);
-            return NULL;
+            pthread_exit(NULL);
         }
         if (strcmp(buffer, "") == 0)
             continue;
@@ -158,6 +158,7 @@ void recv_client_name(int socket, char **client_name)
         // Client disconnected before sending the name
         handle_client_disconnection(socket, NULL);
         // close(socket);
+        pthread_exit(NULL);
         return;
     }
 
@@ -193,9 +194,9 @@ void send_to_all(int socket, char *buffer)
     {
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
         {
-            pthread_mutex_lock(&clients_lock[i]);
+            // pthread_mutex_lock(&clients_lock[i]);
             send(clients[i].sockfd, buffer, BUFFER_SIZE, 0);
-            pthread_mutex_unlock(&clients_lock[i]);
+            // pthread_mutex_unlock(&clients_lock[i]);
         }
     }
     pthread_mutex_unlock(&client_number_lock);
@@ -208,7 +209,7 @@ void handle_client_disconnection(int socket, char *client_name)
     else
         printf("Client has sockfd: %d has closed the connection\n", socket);
     // Delete client from clients array and free client_name memory
-    pthread_mutex_lock(&client_number_lock);
+    // pthread_mutex_lock(&client_number_lock);
     for (int j = 0; j < MAX_CLIENTS; j++)
     {
         if (socket == clients[j].sockfd)
@@ -222,7 +223,7 @@ void handle_client_disconnection(int socket, char *client_name)
             break;
         }
     }
-    pthread_mutex_unlock(&client_number_lock);
+    // pthread_mutex_unlock(&client_number_lock);
     // Close client's socket
     close(socket);
 }
@@ -425,8 +426,8 @@ int main(int argc, char const *argv[])
     printf("Listening on port %d\n", port);
     while (1)
     {
-        usleep(10000);
-        pthread_mutex_lock(&client_sockfd_lock);
+        usleep(5000);
+        // pthread_mutex_lock(&client_sockfd_lock);
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
         if (client_sockfd < 0)
@@ -439,7 +440,7 @@ int main(int argc, char const *argv[])
         // setsockopt(client_sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
 
         // Lock the client_number mutex to safely update client info and create a thread
-        pthread_mutex_lock(&client_number_lock);
+        // pthread_mutex_lock(&client_number_lock);
         for (int j = 0; j < MAX_CLIENTS; j++)
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
@@ -458,21 +459,21 @@ int main(int argc, char const *argv[])
         if (pthread_create(&threads[client_number], NULL, connection_handle, (void *)&client_sockfd) != 0)
         {
             perror("pthread_create");
-            pthread_mutex_unlock(&client_number_lock);
-            pthread_mutex_unlock(&client_sockfd_lock);
+            // pthread_mutex_unlock(&client_number_lock);
+            // pthread_mutex_unlock(&client_sockfd_lock);
             exit(EXIT_FAILURE);
         }
 
         current_client_number += 1;
         printf("Current client number: %d\n", current_client_number);
-        pthread_mutex_unlock(&client_number_lock);
-        pthread_mutex_unlock(&client_sockfd_lock);
+        // pthread_mutex_unlock(&client_number_lock);
+        // pthread_mutex_unlock(&client_sockfd_lock);
     }
 
     // Destroy the mutexes
     pthread_mutex_destroy(&counter_lock);
     pthread_mutex_destroy(&client_number_lock);
-    pthread_mutex_destroy(&client_sockfd_lock);
+    // pthread_mutex_destroy(&client_sockfd_lock);
 
     return 0;
 }
