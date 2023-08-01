@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <netinet/tcp.h>
 
 #define MAX_CLIENTS 10000
 #define BUFFER_SIZE 1024
@@ -65,18 +66,18 @@ void *connection_handle(void *arg)
         if (strcmp(buffer, "") == 0)
             continue;
 
-        buffer[read_len] = '\0';
+        // buffer[read_len] = '\0';
         // printf("buffer: %s\n", buffer);
 
         if (read_len > 0)
         {
             memset(msg_to_print, 0, BUFFER_SIZE);
-
             strcat(msg_to_print, client_name);
             strcat(msg_to_print, ": ");
 
             if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0)
             {
+                buffer[strlen(buffer)] = '\0';
                 handle_message(socket, buffer, msg_to_print);
             }
             else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
@@ -104,9 +105,11 @@ void handle_message(int socket, const char *buffer, char *msg_to_print)
     printf("%d. %s\n", counter, msg_to_print);
     buf_to_send = malloc(length + strlen(msg_to_print));
     sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
+    buf_to_send[strlen(buf_to_send)] = '\0';
     send_to_all(socket, buf_to_send);
-    memset(buffer, 0, BUFFER_SIZE);
+    // memset(buffer, 0, BUFFER_SIZE);
     memset(temp, 0, BUFFER_SIZE);
+    // memset(buf_to_send, 0, BUFFER_SIZE);
 }
 
 void handle_upload(int socket, const char *buffer, const char *client_name)
@@ -185,14 +188,14 @@ void free_client_name(char *client_name)
 void send_to_all(int socket, char *buffer)
 {
     pthread_mutex_lock(&client_number_lock); // Protect clients array while sending
-    printf("Sending to all clients: %s\n", buffer);
+    // printf("Sending to all clients: %s\n", buffer);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
         {
-            pthread_mutex_lock(&socket_lock);
-            send(clients[i].sockfd, buffer, strlen(buffer), 0);
-            pthread_mutex_unlock(&socket_lock);
+            pthread_mutex_lock(&clients_lock[i]);
+            send(clients[i].sockfd, buffer, BUFFER_SIZE, 0);
+            pthread_mutex_unlock(&clients_lock[i]);
         }
     }
     pthread_mutex_unlock(&client_number_lock);
@@ -236,7 +239,7 @@ void send_file(int socket, char *file_name, char *file_path)
         // send fail message to client with format: FILE|0|file_name
         memset(buffer, 0, BUFFER_SIZE);
         sprintf(buffer, "FILE|0|%s", file_name);
-        send(socket, buffer, strlen(buffer), 0);
+        send(socket, buffer, BUFFER_SIZE, 0);
         return;
     }
 
@@ -431,6 +434,9 @@ int main(int argc, char const *argv[])
             perror("accept");
             exit(EXIT_FAILURE);
         }
+
+        // int enable = 1;
+        // setsockopt(client_sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
 
         // Lock the client_number mutex to safely update client info and create a thread
         pthread_mutex_lock(&client_number_lock);

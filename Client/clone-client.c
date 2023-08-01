@@ -12,6 +12,8 @@
 #define SERVER_IP "127.0.0.1"
 #define BUFFER_SIZE 1024
 
+// pthread_mutex_t socket_lock;
+
 void *send_message(void *client_sockfd);
 void *recv_message(void *client_sockfd);
 void send_msg_to_serv(int socket, char *client_input);
@@ -30,17 +32,20 @@ void *send_message(void *client_sockfd)
     sprintf(client_name, "%d", random_num);
     // usleep(100000);
 
-    if (send(socket, client_name, strlen(client_name), 0) < 0)
+    if (send(socket, client_name, BUFFER_SIZE, 0) < 0)
     {
         perror("send");
         exit(1);
     }
     printf("%s Connected to server\n", client_name);
-    sprintf(buffer, "TXT|Hello from %s", client_name);
     for (int i = 0; i < 10; i++)
     {
         usleep(500000);
-        send(socket, buffer, strlen(buffer), 0);
+        sprintf(buffer, "TXT|Message number %d from %s", i+1, client_name);
+        buffer[strlen(buffer)]= '\0';
+        send(socket, buffer, BUFFER_SIZE, 0);
+        fflush(stdout); 
+        memset(buffer, 0, BUFFER_SIZE);
         usleep(500000);
     }
 }
@@ -59,7 +64,9 @@ void *recv_message(void *client_sockfd)
         usleep(1000);
         memset(buffer, 0, BUFFER_SIZE);
         memset(msg, 0, BUFFER_SIZE);
+        // pthread_mutex_lock(&socket_lock);
         int recv_len = recv(socket, buffer, BUFFER_SIZE, 0);
+        // pthread_mutex_unlock(&socket_lock);
         if (recv_len < 0)
         {
             perror("recv");
@@ -70,7 +77,8 @@ void *recv_message(void *client_sockfd)
             printf("Server disconnected\n");
             exit(1);
         }
-        buffer[recv_len] = '\0';
+        // buffer[recv_len] = '\0';
+        buffer[strlen(buffer)] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
@@ -134,7 +142,7 @@ void send_file(int socket, char *file_path)
     memset(buffer, 0, BUFFER_SIZE);
     sprintf(buffer, "FILE|%d|%s", file_size, file_name);
     // send file_size
-    send(socket, buffer, sizeof(buffer), 0);
+    send(socket, buffer, BUFFER_SIZE, 0);
     printf("buffer sent: %s\n", buffer);
     memset(buffer, 0, BUFFER_SIZE);
 
@@ -205,7 +213,7 @@ void send_msg_to_serv(int socket, char *client_input)
     // char *msg = malloc(sizeof("TXT|")+ sizeof(client_input));
     char msg[BUFFER_SIZE];
     sprintf(msg, "%s%s", "TXT|", client_input);
-    if (send(socket, msg, sizeof(msg), 0) < 0)
+    if (send(socket, msg, BUFFER_SIZE, 0) < 0)
     {
         perror("send");
         exit(1);
@@ -216,7 +224,11 @@ void send_msg_to_serv(int socket, char *client_input)
 int main(int argc, char *argv[])
 {
     pthread_t send_thread, recv_thread;
-
+// if (pthread_mutex_init(&socket_lock, NULL) != 0)
+//     {
+//         perror("pthread_mutex_init");
+//         exit(EXIT_FAILURE);
+//     }
     if (argc != 2)
     {
         printf("Usage: %s <port>\n", argv[0]);

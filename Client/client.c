@@ -34,7 +34,7 @@ void *send_message(void *client_sockfd)
         if (strcmp(client_name, "") != 0)
             break;
     }
-    if (send(socket, client_name, sizeof(client_name), 0) < 0)
+    if (send(socket, client_name, BUFFER_SIZE, 0) < 0)
     {
         perror("send");
         exit(1);
@@ -80,7 +80,7 @@ void *send_message(void *client_sockfd)
             char buffer[BUFFER_SIZE];
             memset(buffer, 0, BUFFER_SIZE);
             sprintf(buffer, "DOWN|%s", file_name);
-            send(socket, buffer, sizeof(buffer), 0);
+            send(socket, buffer, BUFFER_SIZE, 0);
             memset(file_name, 0, sizeof(file_name));
             continue;
         }
@@ -183,7 +183,7 @@ void send_file(int socket, char *file_path)
     memset(buffer, 0, BUFFER_SIZE);
     sprintf(buffer, "FILE|%d|%s", file_size, file_name);
     // send file_size
-    send(socket, buffer, sizeof(buffer), 0);
+    send(socket, buffer, BUFFER_SIZE, 0);
     // printf("buffer sent: %s\n", buffer);
     memset(buffer, 0, BUFFER_SIZE);
     
@@ -255,7 +255,7 @@ void send_msg_to_serv(int socket, char *client_input)
     // char *msg = malloc(sizeof("TXT|")+ sizeof(client_input));
     char msg[BUFFER_SIZE];
     sprintf(msg, "%s%s", "TXT|", client_input);
-    if (send(socket, msg, sizeof(msg), 0) < 0)
+    if (send(socket, msg, BUFFER_SIZE, 0) < 0)
     {
         perror("send");
         exit(1);
