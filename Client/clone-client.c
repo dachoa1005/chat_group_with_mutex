@@ -38,13 +38,16 @@ void *send_message(void *client_sockfd)
         exit(1);
     }
     printf("%s Connected to server\n", client_name);
-    for (int i = 0; i < 10; i++)
+    usleep(15000000); // sleep 30s
+    int i = 0;
+    while (i < 10)
     {
         usleep(500000);
-        sprintf(buffer, "TXT|Message number %d from %s", i+1, client_name);
-        buffer[strlen(buffer)]= '\0';
+        i += 1;
+        sprintf(buffer, "TXT|Message number %d from %s", i, client_name);
+        buffer[strlen(buffer)] = '\0';
         send(socket, buffer, BUFFER_SIZE, 0);
-        fflush(stdout); 
+        fflush(stdout);
         memset(buffer, 0, BUFFER_SIZE);
         usleep(500000);
     }
@@ -85,7 +88,7 @@ void *recv_message(void *client_sockfd)
         {
             // sscanf(buffer, "%*s|%s", msg);
             memcpy(msg, buffer + strlen("TXT|"), strlen(buffer) - strlen("TXT|") + 1);
-            printf("%s\n", msg);
+            // printf("%s\n", msg);
             continue;
         }
         else if (strncmp(buffer, "FILE|", strlen("FILE|")) == 0)
@@ -224,11 +227,11 @@ void send_msg_to_serv(int socket, char *client_input)
 int main(int argc, char *argv[])
 {
     pthread_t send_thread, recv_thread;
-// if (pthread_mutex_init(&socket_lock, NULL) != 0)
-//     {
-//         perror("pthread_mutex_init");
-//         exit(EXIT_FAILURE);
-//     }
+    // if (pthread_mutex_init(&socket_lock, NULL) != 0)
+    //     {
+    //         perror("pthread_mutex_init");
+    //         exit(EXIT_FAILURE);
+    //     }
     if (argc != 2)
     {
         printf("Usage: %s <port>\n", argv[0]);

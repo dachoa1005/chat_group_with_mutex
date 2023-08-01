@@ -119,7 +119,8 @@ void *recv_message(void *client_sockfd)
             printf("Server disconnected\n");
             exit(1);
         }
-        buffer[recv_len] = '\0';
+        // buffer[recv_len] = '\0';
+        buffer[strlen(buffer)] = '\0';
 
         // check if message is a txt or file? (format: TXT|message or FILE|file_size|data)
         if (strncmp(buffer, "TXT|", strlen("TXT|")) == 0) // this is a Text
