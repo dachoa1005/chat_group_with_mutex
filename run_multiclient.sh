@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Replace SERVER_ADDRESS and SERVER_PORT with your server's address and port
-SERVER_PORT="88888"
+SERVER_PORT="8888"
 
-NUM_CLIENTS=1000
+NUM_CLIENTS=2000
 
 # Function to launch a client in the background
 launch_client() {

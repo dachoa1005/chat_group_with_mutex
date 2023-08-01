@@ -38,7 +38,7 @@ void *send_message(void *client_sockfd)
         exit(1);
     }
     printf("%s Connected to server\n", client_name);
-    usleep(15000000); // sleep 30s
+    // usleep(15000000); // sleep 30s
     int i = 0;
     while (i < 10)
     {

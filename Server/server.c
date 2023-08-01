@@ -108,6 +108,7 @@ void handle_message(int socket, const char *buffer, char *msg_to_print)
     pthread_mutex_unlock(&counter_lock);
     // memset(buffer, 0, BUFFER_SIZE);
     memset(temp, 0, BUFFER_SIZE);
+    free(buf_to_send);
     // memset(buf_to_send, 0, BUFFER_SIZE);
 }
 
@@ -428,7 +429,7 @@ int main(int argc, char const *argv[])
     printf("Listening on port %d\n", port);
     while (1)
     {
-        usleep(5000);
+        usleep(20000);
         // pthread_mutex_lock(&client_sockfd_lock);
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
@@ -462,15 +463,15 @@ int main(int argc, char const *argv[])
                 client_index = 0;
         }
         // add client to clients array
-        pthread_mutex_lock(&clients_lock[client_index]);
+        // pthread_mutex_lock(&clients_lock[client_index]);
         clients[client_index].sockfd = client_sockfd;
         printf("client index:%d\n", client_index);
-        pthread_mutex_unlock(&clients_lock[client_index]);
-        
+        // pthread_mutex_unlock(&clients_lock[client_index]);
+
         // printf("Client has socketfd: %d has connected.\n\n", client_sockfd);
 
         // Create thread to handle each client
-        if (pthread_create(&threads[client_index], NULL, connection_handle, (void *)&client_sockfd) != 0)
+        if (pthread_create(&threads[client_index], NULL, connection_handle, (void *)&clients[client_index].sockfd) != 0)
         {
             perror("pthread_create");
             pthread_mutex_unlock(&client_number_lock);
@@ -480,7 +481,9 @@ int main(int argc, char const *argv[])
         }
 
         current_client_number += 1;
+        
         printf("Current client number: %d\n", current_client_number);
+        client_index += 1;
         pthread_mutex_unlock(&client_number_lock);
         // pthread_mutex_unlock(&client_sockfd_lock);
     }
