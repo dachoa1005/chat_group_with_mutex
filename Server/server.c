@@ -429,7 +429,7 @@ int main(int argc, char const *argv[])
     printf("Listening on port %d\n", port);
     while (1)
     {
-        usleep(20000);
+        usleep(10000);
         // pthread_mutex_lock(&client_sockfd_lock);
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
