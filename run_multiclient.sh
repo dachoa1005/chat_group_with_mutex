@@ -14,7 +14,7 @@ launch_client() {
 for ((i=1; i<=NUM_CLIENTS; i++))
 do
     launch_client
-    sleep 0.1 # Adjust this sleep time as needed to avoid overwhelming the system
+    # sleep 0.01 # Adjust this sleep time as needed to avoid overwhelming the system
 done
 
 # Wait for all background clients to finish
