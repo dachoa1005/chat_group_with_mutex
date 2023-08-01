@@ -28,7 +28,7 @@ typedef struct
 } Client;
 
 Client *clients;
-int client_number = 0;
+int client_index = 0;
 int current_client_number = 0;
 
 void send_file(int socket, char *file_name, char *file_path);
@@ -59,9 +59,9 @@ void *connection_handle(void *arg)
         if (read_len <= 0)
         {
             handle_client_disconnection(socket, client_name);
-            free(client_name);
+            // free(client_name);
             // close(socket);
-            pthread_exit(NULL);
+            
         }
         if (strcmp(buffer, "") == 0)
             continue;
@@ -98,15 +98,15 @@ void handle_message(int socket, const char *buffer, char *msg_to_print)
     char *buf_to_send;
     pthread_mutex_lock(&counter_lock);
     counter += 1;
-    pthread_mutex_unlock(&counter_lock);
     int length = strlen("TXT|");
     memcpy(temp, buffer + length, strlen(buffer) - length + 1);
     strcat(msg_to_print, temp);
-    printf("%d. %s\n", counter, msg_to_print);
     buf_to_send = malloc(length + strlen(msg_to_print));
     sprintf(buf_to_send, "%s%s", "TXT|", msg_to_print);
     buf_to_send[strlen(buf_to_send)] = '\0';
     send_to_all(socket, buf_to_send);
+    printf("%d. %s\n", counter, msg_to_print);
+    pthread_mutex_unlock(&counter_lock);
     // memset(buffer, 0, BUFFER_SIZE);
     memset(temp, 0, BUFFER_SIZE);
     // memset(buf_to_send, 0, BUFFER_SIZE);
@@ -162,7 +162,7 @@ void recv_client_name(int socket, char **client_name)
         return;
     }
 
-    buffer[read_len] = '\0';
+    buffer[strlen(buffer)] = '\0';
     pthread_mutex_lock(&client_number_lock);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
@@ -225,7 +225,10 @@ void handle_client_disconnection(int socket, char *client_name)
     }
     // pthread_mutex_unlock(&client_number_lock);
     // Close client's socket
+    if (client_name != NULL)
+        free(client_name);
     close(socket);
+    pthread_exit(NULL);
 }
 
 void send_file(int socket, char *file_name, char *file_path)
@@ -439,16 +442,16 @@ int main(int argc, char const *argv[])
         // int enable = 1;
         // setsockopt(client_sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
 
-        // Lock the client_number mutex to safely update client info and create a thread
-        // pthread_mutex_lock(&client_number_lock);
+        // Lock the client number mutex to safely update client info and create a thread
+        pthread_mutex_lock(&client_number_lock);
         for (int j = 0; j < MAX_CLIENTS; j++)
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
             {
                 pthread_mutex_lock(&clients_lock[j]);
                 clients[j].sockfd = client_sockfd;
-                client_number = j;
-                printf("client index:%d\n", client_number);
+                client_index = j;
+                printf("client index:%d\n", client_index);
                 pthread_mutex_unlock(&clients_lock[j]);
                 break;
             }
@@ -456,17 +459,18 @@ int main(int argc, char const *argv[])
         // printf("Client has socketfd: %d has connected.\n\n", client_sockfd);
 
         // Create thread to handle each client
-        if (pthread_create(&threads[client_number], NULL, connection_handle, (void *)&client_sockfd) != 0)
+        if (pthread_create(&threads[client_index], NULL, connection_handle, (void *)&client_sockfd) != 0)
         {
             perror("pthread_create");
-            // pthread_mutex_unlock(&client_number_lock);
+            pthread_mutex_unlock(&client_number_lock);
             // pthread_mutex_unlock(&client_sockfd_lock);
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
+            continue;
         }
 
         current_client_number += 1;
         printf("Current client number: %d\n", current_client_number);
-        // pthread_mutex_unlock(&client_number_lock);
+        pthread_mutex_unlock(&client_number_lock);
         // pthread_mutex_unlock(&client_sockfd_lock);
     }
 
