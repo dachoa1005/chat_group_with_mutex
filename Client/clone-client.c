@@ -42,14 +42,14 @@ void *send_message(void *client_sockfd)
     int i = 0;
     while (i < 10)
     {
-        usleep(500000);
+        usleep(50000);
         i += 1;
         sprintf(buffer, "TXT|Message number %d from %s", i, client_name);
         buffer[strlen(buffer)] = '\0';
         send(socket, buffer, BUFFER_SIZE, 0);
         fflush(stdout);
         memset(buffer, 0, BUFFER_SIZE);
-        usleep(500000);
+        usleep(50000);
     }
 }
 
