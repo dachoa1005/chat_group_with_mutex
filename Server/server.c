@@ -43,7 +43,9 @@ void handle_download(int socket, const char *buffer, const char *client_name);
 
 void *connection_handle(void *arg)
 {
+    pthread_mutex_lock(&socket_lock);
     int socket = *(int *)arg;
+    pthread_mutex_unlock(&socket_lock);
     char buffer[BUFFER_SIZE];
     char *client_name;
     int read_len = 0;
@@ -59,6 +61,7 @@ void *connection_handle(void *arg)
         if (read_len <= 0)
         {
             handle_client_disconnection(socket, client_name);
+
             // free(client_name);
             // close(socket);
         }
@@ -157,6 +160,7 @@ void recv_client_name(int socket, char **client_name)
     {
         // Client disconnected before sending the name
         handle_client_disconnection(socket, NULL);
+
         // close(socket);
         pthread_exit(NULL);
         return;
@@ -195,7 +199,13 @@ void send_to_all(int socket, char *buffer)
         if (clients[i].sockfd != socket && clients[i].sockfd > 0 && clients[i].name != NULL)
         {
             // pthread_mutex_lock(&clients_lock[i]);
-            send(clients[i].sockfd, buffer, BUFFER_SIZE, 0);
+            int bytes_sent = send(clients[i].sockfd, buffer, BUFFER_SIZE, 0);
+            if (bytes_sent == -1)
+                {
+                    perror("sent");
+                    continue;    
+                }
+
             // pthread_mutex_unlock(&clients_lock[i]);
         }
     }
