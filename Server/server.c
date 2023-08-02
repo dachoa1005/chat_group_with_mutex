@@ -374,11 +374,6 @@ void init_mutex_lock()
         perror("pthread_mutex_init");
         exit(EXIT_FAILURE);
     }
-    if (pthread_mutex_init(&client_sockfd_lock, NULL) != 0)
-    {
-        perror("pthread_mutex_init");
-        exit(EXIT_FAILURE);
-    }
     if (pthread_mutex_init(&client_number_lock, NULL) != 0)
     {
         perror("pthread_mutex_init");
@@ -440,7 +435,6 @@ int main(int argc, char const *argv[])
     while (1)
     {
         usleep(10000);
-        // pthread_mutex_lock(&client_sockfd_lock);
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
         if (client_sockfd < 0)
@@ -485,7 +479,6 @@ int main(int argc, char const *argv[])
         {
             perror("pthread_create");
             pthread_mutex_unlock(&client_number_lock);
-            // pthread_mutex_unlock(&client_sockfd_lock);
             // exit(EXIT_FAILURE);
             continue;
         }
@@ -495,13 +488,11 @@ int main(int argc, char const *argv[])
         printf("Current client number: %d\n", current_client_number);
         client_index += 1;
         pthread_mutex_unlock(&client_number_lock);
-        // pthread_mutex_unlock(&client_sockfd_lock);
     }
 
     // Destroy the mutexes
     pthread_mutex_destroy(&counter_lock);
     pthread_mutex_destroy(&client_number_lock);
-    // pthread_mutex_destroy(&client_sockfd_lock);
 
     return 0;
 }
