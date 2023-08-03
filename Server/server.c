@@ -43,9 +43,9 @@ void handle_download(int socket, const char *buffer, const char *client_name);
 
 void *connection_handle(void *arg)
 {
-    pthread_mutex_lock(&socket_lock);
+    // pthread_mutex_lock(&socket_lock);
     int socket = *(int *)arg;
-    pthread_mutex_unlock(&socket_lock);
+    // pthread_mutex_unlock(&socket_lock);
     char buffer[BUFFER_SIZE];
     char *client_name;
     int read_len = 0;
