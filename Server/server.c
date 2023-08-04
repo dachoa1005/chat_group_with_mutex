@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <netinet/tcp.h>
+#include <signal.h>
 
 #define MAX_CLIENTS 10000
 #define BUFFER_SIZE 1024
@@ -43,9 +44,7 @@ void handle_download(int socket, const char *buffer, const char *client_name);
 
 void *connection_handle(void *arg)
 {
-    // pthread_mutex_lock(&socket_lock);
     int socket = *(int *)arg;
-    // pthread_mutex_unlock(&socket_lock);
     char buffer[BUFFER_SIZE];
     char *client_name;
     int read_len = 0;
@@ -92,6 +91,7 @@ void *connection_handle(void *arg)
             }
         }
     } while (read_len > 0);
+    return NULL;
 }
 
 void handle_message(int socket, const char *buffer, char *msg_to_print)
@@ -122,12 +122,12 @@ void handle_upload(int socket, const char *buffer, const char *client_name)
     char file_name[FILE_NAME_SIZE];
     sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
     printf("\n%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
-    int total_bytes_recv = 0;
-    int bytes_recv = 0;
+    // int total_bytes_recv = 0;
+    // int bytes_recv = 0;
     char file_path[FILE_PATH_SIZE];
     sprintf(file_path, "./%s", file_name);
     printf("file path: %s\n\n", file_path);
-
+    
     recv_file(socket, file_size, file_path);
     memset(file_name, 0, sizeof(file_name));
     memset(file_path, 0, sizeof(file_path));
@@ -202,7 +202,7 @@ void send_to_all(int socket, char *buffer)
             int bytes_sent = send(clients[i].sockfd, buffer, BUFFER_SIZE, 0);
             if (bytes_sent == -1)
                 {
-                    perror("sent");
+                    // perror("sent");
                     continue;    
                 }
 
@@ -382,14 +382,23 @@ void init_mutex_lock()
     return;
 }
 
+void handle_sigpipe(int signal) {
+    // Xử lý tín hiệu SIGPIPE ở đây
+    // printf("Nhận được tín hiệu SIGPIPE, xử lý hành vi thích hợp...\n");
+}
+
 int main(int argc, char const *argv[])
 {
+    printf("PID: %d\n", getpid());
     int port = atoi(argv[1]);
     int server_sockfd, client_sockfd;
     struct sockaddr_in server_address;
     int addrlen = sizeof(server_address);
-    char buffer[BUFFER_SIZE] = {0};
+    int optval = 1;
+    // char buffer[BUFFER_SIZE] = {0};
     pthread_t threads[MAX_CLIENTS];
+
+    signal(SIGPIPE, handle_sigpipe);
 
     // Init clients sockfd array
     init_clients_array();
@@ -416,6 +425,11 @@ int main(int argc, char const *argv[])
     server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(port);
 
+    if (setsockopt(server_sockfd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)) == -1) {
+        perror("Khong the set option TCP_NODELAY");
+        return 1;
+    }
+
     // Bind socket to port
     if (bind(server_sockfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
@@ -435,6 +449,11 @@ int main(int argc, char const *argv[])
     while (1)
     {
         usleep(10000);
+        if (current_client_number >= MAX_CLIENTS) {
+            printf("Server has reach max clients, waiting...\n");
+            sleep(1); 
+            continue;
+        }
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
         if (client_sockfd < 0)
@@ -460,12 +479,29 @@ int main(int argc, char const *argv[])
         //         break;
         //     }
         // }
-        while (clients[client_index].sockfd != -1 && clients[client_index].name != NULL)
+        // while (clients[client_index].sockfd != -1 && clients[client_index].name != NULL)
+        // {
+        //     client_index += 1;
+        //     if (client_index == MAX_CLIENTS)
+        //         client_index = 0;
+        // }
+
+        while (client_index < MAX_CLIENTS)
         {
-            client_index += 1;
-            if (client_index == MAX_CLIENTS)
-                client_index = 0;
+            if (clients[client_index].sockfd == -1 && clients[client_index].name == NULL)
+                break;
+            else
+                client_index += 1;
         }
+        
+        // while (current_client_number >= MAX_CLIENTS)
+        //     {
+        //         // printf
+        //         sleep(10);
+        //     }
+        // reset index to 0 if index > MAX_CLIENTS
+        if (client_index >= MAX_CLIENTS)
+            client_index = 0;
         // add client to clients array
         // pthread_mutex_lock(&clients_lock[client_index]);
         clients[client_index].sockfd = client_sockfd;
@@ -483,10 +519,10 @@ int main(int argc, char const *argv[])
             continue;
         }
 
+        client_index += 1;
         current_client_number += 1;
         
         printf("Current client number: %d\n", current_client_number);
-        client_index += 1;
         pthread_mutex_unlock(&client_number_lock);
     }
 
