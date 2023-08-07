@@ -86,6 +86,7 @@ void *connection_handle(void *arg)
             }
         }
     } while (read_len > 0);
+    return NULL;
 }
 
 void handle_message(int socket, const char *buffer, char *msg_to_print) 
@@ -112,8 +113,8 @@ void handle_upload(int socket, const char *buffer, const char *client_name) {
     char file_name[FILE_NAME_SIZE];
     sscanf(buffer, "%*[^|]|%d|%s|", &file_size, file_name);
     printf("\n%d. Recv file_name: %s from client: %s (sockfd: %d), file_size: %d\n", counter, file_name, client_name, socket, file_size);
-    int total_bytes_recv = 0;
-    int bytes_recv = 0;
+    // int total_bytes_recv = 0;
+    // int bytes_recv = 0;
     char file_path[FILE_PATH_SIZE];
     sprintf(file_path, "./%s", file_name);
     printf("file path: %s\n\n", file_path);
@@ -351,9 +352,9 @@ int main(int argc, char const *argv[])
     int server_sockfd, client_sockfd;
     struct sockaddr_in server_address;
     int addrlen = sizeof(server_address);
-    char buffer[BUFFER_SIZE] = {0};
+    // char buffer[BUFFER_SIZE] = {0};
     pthread_t threads[MAX_CLIENTS];
-
+    
     // Init clients sockfd array
     init_clients_array();
 
@@ -397,6 +398,8 @@ int main(int argc, char const *argv[])
     printf("Listening on port %d\n", port);
     while (1)
     {
+        usleep(10000);
+
         // Accept connection from client
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&server_address, (socklen_t *)&addrlen);
         if (client_sockfd < 0)
@@ -411,11 +414,11 @@ int main(int argc, char const *argv[])
         {
             if (clients[j].sockfd == -1 && clients[j].name == NULL)
             {
-                pthread_mutex_lock(&clients_lock[j]);
+                // pthread_mutex_lock(&clients_lock[j]);
                 clients[j].sockfd = client_sockfd;
                 client_number = j;
                 printf("client index:%d\n", client_number);
-                pthread_mutex_unlock(&clients_lock[j]);
+                // pthread_mutex_unlock(&clients_lock[j]);
                 break;
             }
         }

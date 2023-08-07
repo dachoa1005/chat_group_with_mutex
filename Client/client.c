@@ -164,7 +164,7 @@ const char *get_file_name(const char *path)
 
 void send_file(int socket, char *file_path)
 {
-    int bytes_read;
+    // int bytes_read;
     char buffer[BUFFER_SIZE];
 
     int fd = open(file_path, O_RDONLY);
